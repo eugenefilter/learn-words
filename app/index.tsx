@@ -1,10 +1,11 @@
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useState, useCallback } from 'react'
 import { Alert } from 'react-native'
-import { FlatList, Text, TouchableOpacity, View, Button, StyleSheet } from 'react-native'
+import { FlatList, Text, TouchableOpacity, View } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/card'
+import { FlipCard } from '@/components/card/flipCard'
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -45,53 +46,40 @@ const HomeScreen = () => {
   );
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Button title="Add Card" onPress={() => router.push('/add')} />
-      <Button title="Repeat Mode" onPress={() => router.push('/repeat')} />
+    <View style={{ flex: 1, padding: 16 }} className='bg-primary'>
+      <TouchableOpacity 
+        className='w-full bg-primary-900 border border-primary-300 rounded py-5'
+        onPress={() => router.push('/add')}
+      >
+        <Text className='text-primary-100 text-2xl font-bold text-center'>Add Card</Text>
+      </TouchableOpacity>
 
       <FlatList
         data={cards}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => {
-              item.show = !item.show;
-              setCards([...cards]);
-            }}
-            style={{ paddingVertical: 10, borderBottomWidth: 1 }}
-          >
-            <Card 
-              card={item}
-              onDelete={(id) => deleteCard(id)}
-              onEdit={(id) => router.push({ pathname: '/edit', params: { id: id.toString() } })}
-            />
-            {item.show && (
-              <View style={{ marginTop: 8 }}>
-                <Text style={{ fontStyle: 'italic' }}>{item.translation}</Text>
-                <Text style={{ fontWeight: 'bold' }}>Examples:</Text>
-                {item.examples.map((ex, i) => (
-                  <Text key={i}>– {ex.sentence}</Text>
-                ))}
-              </View>
-            )}
-          </TouchableOpacity>
+          <FlipCard 
+            front={
+              <Card
+                card={item}
+                onDelete={deleteCard}
+                onEdit={(id) => router.push({ pathname: '/edit', params: { id: id.toString() } })}
+              />
+            }
+            back={
+             <View className='w-full min-h-30 max-h-30'>
+               <Text className='text-primary-100'>{item.translation}</Text>
+               <Text className='text-primary-100'>Examples:</Text>
+               {item.examples.map((ex, i) => (
+                 <Text className='text-primary-100' key={i}>– {ex.sentence}</Text>
+               ))}
+             </View>              
+            }
+          />
         )}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    alignContent: "center"
-  },
-
-  gap: {
-    gap: 4
-  }
-});
 
 export default HomeScreen;
