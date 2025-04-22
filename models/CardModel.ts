@@ -1,14 +1,14 @@
-import { getDB } from '../database/database';
-import type { Card, Example } from '../types/TCard';
+import { getDB } from '@/database/database';
+import { TCard, TExample } from '@/types/TCard';
 
 export class CardModel {
-  static async all(): Promise<Card[]> {
+  static async all(): Promise<TCard[]> {
     const db = getDB();
-    const cardsRaw = await db.getAllAsync<Card>('SELECT * FROM cards');
+    const cardsRaw = await db.getAllAsync<TCard>('SELECT * FROM cards');
 
     const cards = await Promise.all(
       cardsRaw.map(async (card) => {
-        const examples = await db.getAllAsync<Example>(
+        const examples = await db.getAllAsync<TExample>(
           'SELECT id, sentence FROM examples WHERE card_id = ?',
           [card.id]
         );
@@ -22,12 +22,12 @@ export class CardModel {
     return cards;
   }
 
-  static async find(id: number): Promise<Card | null> {
+  static async find(id: number): Promise<TCard | null> {
     const db = getDB();
-    const result = await db.getFirstAsync<Card>('SELECT * FROM cards WHERE id = ?', [id]);
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id = ?', [id]);
     if (!result) return null;
   
-    const examples = await db.getAllAsync<Example>(
+    const examples = await db.getAllAsync<TExample>(
       'SELECT * FROM examples WHERE card_id = ?',
       [id]
     );

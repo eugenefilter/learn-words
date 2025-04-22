@@ -92,6 +92,6 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden',
   },
   cardBack: {
-    backgroundColor: '#828282',
+    backgroundColor: '#E7E0EC',
   },
 });

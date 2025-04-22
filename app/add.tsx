@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Button, FlatList, Text, TextInput, View } from 'react-native';
 import { CardModel } from '@/models/CardModel';
+import { Form } from '@/components/form';
 
 export default function AddCard() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function AddCard() {
   };
 
   const save = async () => {
+    console.log('save')
     const examplesSentence = [];
 
     for (const sentence of examples) {
@@ -34,15 +36,13 @@ export default function AddCard() {
   };
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text>Word</Text>
-      <TextInput value={word} onChangeText={setWord} style={{ borderWidth: 1, marginBottom: 8 }} />
+    <View className='h-full p-5'>
+      <Form.Input value={word} onChangeText={setWord} placeholder='Word' className='my-2'/>
 
-      <Text>Translation</Text>
-      <TextInput value={translation} onChangeText={setTranslation} style={{ borderWidth: 1, marginBottom: 8 }} />
+      <Form.Input value={translation} onChangeText={setTranslation} placeholder='Translation' className='my-2' />
 
-      <Text>Example</Text>
-      <TextInput value={example} onChangeText={setExample} style={{ borderWidth: 1, marginBottom: 8 }} />
+      <Form.Input value={example} onChangeText={setExample} placeholder='Example' className='my-2' />
+      
       <Button title="Add Example" onPress={addExample} />
 
       <FlatList
@@ -51,7 +51,8 @@ export default function AddCard() {
         renderItem={({ item }) => <Text>– {item}</Text>}
       />
 
-      <Button title="Save" onPress={save} />
+      <Form.Button title="Save" onPress={() => save()} className='mb-10'/>
+
     </View>
   );
 }

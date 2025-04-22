@@ -46,7 +46,7 @@ export default function EditCard() {
   return (
     <View style={{ padding: 16 }}>
       <Text>Word</Text>
-      <TextInput value={word} onChangeText={setWord} style={{ borderWidth: 1, marginBottom: 8 }} />
+      <TextInput value={word} onChangeText={setWord} style={{ borderWidrth: 1, marginBottom: 8 }} />
 
       <Text>Translation</Text>
       <TextInput value={translation} onChangeText={setTranslation} style={{ borderWidth: 1, marginBottom: 8 }} />

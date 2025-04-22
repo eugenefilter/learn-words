@@ -46,12 +46,12 @@ const HomeScreen = () => {
   );
 
   return (
-    <View style={{ flex: 1, padding: 16 }} className='bg-primary'>
+    <View className='p-5 flex-1'>
       <TouchableOpacity 
-        className='w-full bg-primary-900 border border-primary-300 rounded py-5'
+        className='w-full rounded py-5'
         onPress={() => router.push('/add')}
       >
-        <Text className='text-primary-100 text-2xl font-bold text-center'>Add Card</Text>
+        <Text className=' text-2xl font-bold text-center'>Add Card</Text>
       </TouchableOpacity>
 
       <FlatList
@@ -68,10 +68,10 @@ const HomeScreen = () => {
             }
             back={
              <View className='w-full min-h-30 max-h-30'>
-               <Text className='text-primary-100'>{item.translation}</Text>
-               <Text className='text-primary-100'>Examples:</Text>
+               <Text className='text-primary-900'>{item.translation}</Text>
+               <Text className='text-primary-900'>Examples:</Text>
                {item.examples.map((ex, i) => (
-                 <Text className='text-primary-100' key={i}>– {ex.sentence}</Text>
+                 <Text className='text-primary-900' key={i}>– {ex.sentence}</Text>
                ))}
              </View>              
             }

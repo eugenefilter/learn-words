@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "VocabCardsApp",
+    "name": "VocabularyQuizApp",
     "slug": "VocabCardsApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.djagannath.vocabulary.quiz.app"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +38,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ad4d27fc-db58-42ba-91b7-068ac20eb013"
+      }
     }
   }
 }
