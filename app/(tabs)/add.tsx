@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, FlatList, Text, TextInput, View } from 'react-native';
+import { Button, FlatList, Text, View } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import { Form } from '@/components/form';
 

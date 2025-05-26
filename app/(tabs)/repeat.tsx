@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Text, View } from 'react-native';
-import { getDB } from '../database/database';
+import { getDB } from '../../database/database';
 
 type Card = {
   id: number;

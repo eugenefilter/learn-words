@@ -2,28 +2,54 @@ import { getDB } from '@/database/database';
 import { TCard, TExample } from '@/types/TCard';
 
 export class CardModel {
-  static async all(): Promise<TCard[]> {
-    const db = getDB();
-    const cardsRaw = await db.getAllAsync<TCard>('SELECT * FROM cards');
 
-    const cards = await Promise.all(
-      cardsRaw.map(async (card) => {
-        const examples = await db.getAllAsync<TExample>(
-          'SELECT id, sentence FROM examples WHERE card_id = ?',
-          [card.id]
-        );
-        return {
-          ...card,
-          examples
-        };
-      })
+  /**
+   * Возвращает карточки с примерами, с учётом пагинации.
+   * @param limit  сколько записей вернуть
+   * @param offset с какого смещения
+   */
+  static async all(limit: number = 20, offset: number = 0): Promise<TCard[]> {
+    const db = getDB(); // теперь синхронно
+
+    // Получаем сами карточки
+    const cardsRaw = await db.getAllAsync<TCard>(
+      'SELECT * FROM cards LIMIT ? OFFSET ?;',
+      [limit, offset],
     );
 
-    return cards;
+    // Для каждой карточки находим её примеры
+    // const cardsWithExamples = await Promise.all(
+    //   cardsRaw.map(async (card) => {
+    //     const examples = await db.getAllAsync<TExample>(
+    //       'SELECT id, sentence FROM examples WHERE card_id = ?;',
+    //       [card.id],
+    //     );
+    //     return {
+    //       ...card,
+    //       examples,
+    //     };
+    //   })
+    // );
+
+    return cardsRaw;
   }
 
-  static async find(id: number): Promise<TCard | null> {
+  static async find(title: string): Promise<TCard[] | []> {
     const db = getDB();
+   
+    const cardsRaw = await db.getAllAsync<TCard>(
+      'SELECT * FROM cards WHERE title like ?', 
+      [title]
+    );
+
+    if (!cardsRaw) return [];
+  
+    return cardsRaw;
+  }
+
+  static async findById(id: number): Promise<TCard | null> {
+    const db = getDB();
+
     const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id = ?', [id]);
     if (!result) return null;
   
