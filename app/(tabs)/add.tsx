@@ -2,7 +2,8 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Button, FlatList, Text, View } from 'react-native';
 import { CardModel } from '@/models/CardModel';
-import { Form } from '@/components/form';
+import Input from '@/components/ui/Input';
+
 
 export default function AddCard() {
   const router = useRouter();
@@ -37,11 +38,11 @@ export default function AddCard() {
 
   return (
     <View className='h-full p-5'>
-      <Form.Input value={word} onChangeText={setWord} placeholder='Word' className='my-2'/>
+      <Input value={word} onChangeText={setWord} placeholder='Word' className='my-2'/>
 
-      <Form.Input value={translation} onChangeText={setTranslation} placeholder='Translation' className='my-2' />
+      <Input value={translation} onChangeText={setTranslation} placeholder='Translation' className='my-2' />
 
-      <Form.Input value={example} onChangeText={setExample} placeholder='Example' className='my-2' />
+      <Input value={example} onChangeText={setExample} placeholder='Example' className='my-2' />
       
       <Button title="Add Example" onPress={addExample} />
 
@@ -51,7 +52,7 @@ export default function AddCard() {
         renderItem={({ item }) => <Text>– {item}</Text>}
       />
 
-      <Form.Button title="Save" onPress={() => save()} className='mb-10'/>
+      <Button title="Save" onPress={() => save()}/>
 
     </View>
   );

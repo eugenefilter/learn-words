@@ -5,13 +5,13 @@ type CustomTextInputProps = {
   value: string;
   placeholder: string;
   className?: string;
-  handleChangeText: (text: string) => void;
+  onChangeText: (text: string) => void;
 };
 
 const Input = ({
   value,
   placeholder,
-  handleChangeText,
+  onChangeText,
   className,
   ...props
 }: CustomTextInputProps) => {
@@ -22,15 +22,13 @@ const Input = ({
   )
 
   return (
-    // <View className='m-4 bg-transparent w-full'>
-      <TextInput
-        className={textClass}
-        value={value}
-        placeholder={placeholder}
-        onChangeText={handleChangeText}
-        {...props}
-      />
-    // </View>
+    <TextInput
+      className={textClass}
+      value={value}
+      placeholder={placeholder}
+      onChangeText={onChangeText}
+      {...props}
+    />
   )
 }
 

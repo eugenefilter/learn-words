@@ -1,6 +1,6 @@
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useState, useCallback, useEffect } from 'react'
-import { Alert } from 'react-native'
+import { Alert, View } from 'react-native'
 import { FlatList } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
@@ -59,7 +59,7 @@ const CardListScreen = () => {
   }, [debouncedSearch])
 
   return (
-    <>
+    <View className='bg-primary-900'>
       {/* <TouchableOpacity 
         className='w-full rounded py-5'
         onPress={() => router.push('/add')}
@@ -69,7 +69,7 @@ const CardListScreen = () => {
       <SearchInput 
         value={search}
         placeholder="Search word ..."
-        handleChangeText={setSearch}
+        onChangeText={setSearch}
       />
 
       <FlatList
@@ -81,27 +81,9 @@ const CardListScreen = () => {
             onDelete={deleteCard}
             onEdit={(id) => router.push({ pathname: '/edit', params: { id: id.toString() } })}
           />
-          // <FlipCard 
-          //   front={
-          //     <Card
-          //       card={item}
-          //       onDelete={deleteCard}
-          //       onEdit={(id) => router.push({ pathname: '/edit', params: { id: id.toString() } })}
-          //    />
-          //   }
-          //   back={
-          //     <View className='w-full min-h-30 max-h-30'>
-          //       <Text className='text-primary-900'>{item.translation}</Text>
-          //       <Text className='text-primary-900'>Examples:</Text>
-          //       {item.examples.map((ex, i) => (
-          //         <Text className='text-primary-900' key={i}>– {ex.sentence}</Text>
-          //       ))}
-          //     </View>              
-          //   }
-          // />
         )}
       />
-    </>
+    </View>
   );
 }
 

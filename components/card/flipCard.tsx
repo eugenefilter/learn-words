@@ -53,7 +53,7 @@ export const FlipCard = ({ front, back }: FlipCardProps) => {
 
   return (
     <TouchableWithoutFeedback onPress={() => (flipped ? flipToFront() : flipToBack())}>
-      <View className='w-full'>
+      <View className='w-full h-full'>
         <Animated.View
           className="flex flex-col gap-5"
           style={[
@@ -69,7 +69,7 @@ export const FlipCard = ({ front, back }: FlipCardProps) => {
         <Animated.View
           style={[
             styles.card,
-            styles.cardBack,
+            // styles.cardBack,
             {
               transform: [{ rotateY: backInterpolate }],
               position: 'absolute',
