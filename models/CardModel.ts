@@ -38,13 +38,32 @@ export class CardModel {
     const db = getDB();
    
     const cardsRaw = await db.getAllAsync<TCard>(
-      'SELECT * FROM cards WHERE title like ?', 
+      'SELECT * FROM cards WHERE title LIKE ?', 
       [title]
     );
 
     if (!cardsRaw) return [];
   
     return cardsRaw;
+  }
+
+  static async findByWord(text: string): Promise<TCard | null> {
+    const db = getDB();
+
+    const mask = `%${text}%`
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE', [mask, mask]);
+    if (!result) return null;
+
+    const examples = await db.getAllAsync<TExample>(
+      'SELECT * FROM examples WHERE card_id = ?',
+      [result.id]
+    );
+  
+    return {
+      ...result,
+      examples,
+      show: false
+    };
   }
 
   static async findById(id: number): Promise<TCard | null> {

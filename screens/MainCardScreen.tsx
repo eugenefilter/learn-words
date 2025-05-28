@@ -4,41 +4,34 @@ import SearchInput from '@/components/ui/SearchInput';
 import { FlipCard } from '@/components/card/FlipCard';
 import BackCard from '@/components/card/BackCard';
 import FrontCard from '@/components/card/FrontCard';
+import { CardModel } from '@/models/CardModel';
+import { TCard } from '@/types/TCard';
 
 const MainCardScreen = () => {
   const [search, setSearch] = useState('')
+  const [card, setCard] = useState<TCard | null>(null)
+
+  const searchCardHandler = async (text: string) => {
+    setSearch(text)
+    const searchResult = await CardModel.findByWord(text)
+    setCard(searchResult)
+    console.log(search)
+  }
 
   return (
     <View className='bg-primary-900'>
       <SearchInput 
         value={search}
         placeholder="Search word ..."
-        onChangeText={setSearch}
+        onChangeText={searchCardHandler}
       />
 
+      {card && (
       <FlipCard 
-        front={<FrontCard card={{
-          id: 1,
-          word: 'to stick to something',
-          translation: 'придерживаться чего лидо',
-          examples: [
-            {id: 1, sentence: 'Could you stick to the point, please?'},
-            {id: 2, sentence: 'If you make a promise, you should stick to it'},
-            {id: 3, sentence: 'I think I`ll stick to my first plan'}
-          ],
-          show: true
-        }}
-        />}
+        front={<FrontCard card={card} />}
 
-        back={<BackCard card={{
-          id: 1,
-          word: 'to stick to something',
-          translation: 'придерживаться чего лидо',
-          examples: [],
-          show: true
-        }}
-        />}
-      />
+        back={<BackCard card={card} />}
+      />)}
     </View>
   )
 }
