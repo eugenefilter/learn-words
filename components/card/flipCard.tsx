@@ -1,14 +1,25 @@
-import React, { useRef, useState } from 'react';
-import { Animated, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, PanResponder, StyleSheet, View } from 'react-native';
 
 interface FlipCardProps {
   front: React.ReactNode;
   back: React.ReactNode;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
 }
 
-export const FlipCard = ({ front, back }: FlipCardProps) => {
+export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardProps) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const [flipped, setFlipped] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
+
+  // Keep latest handlers to avoid stale closures inside PanResponder
+  const onSwipeLeftRef = useRef(onSwipeLeft);
+  const onSwipeRightRef = useRef(onSwipeRight);
+  useEffect(() => { onSwipeLeftRef.current = onSwipeLeft; }, [onSwipeLeft]);
+  useEffect(() => { onSwipeRightRef.current = onSwipeRight; }, [onSwipeRight]);
 
   const flipToFront = () => {
     Animated.timing(animatedValue, {
@@ -51,9 +62,40 @@ export const FlipCard = ({ front, back }: FlipCardProps) => {
     outputRange: ['180deg', '360deg'],
   });
 
+  // Handle swipe and tap (flip) without conflicts
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5,
+      onPanResponderGrant: (_, gesture) => {
+        touchStartX.current = gesture.x0;
+        touchStartY.current = gesture.y0;
+        touchStartTime.current = Date.now();
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const dx = gesture.moveX - touchStartX.current;
+        const dy = gesture.moveY - touchStartY.current;
+        const dt = Date.now() - touchStartTime.current;
+
+        // Horizontal swipe
+        if (Math.abs(dx) >= 50 && Math.abs(dy) < 40) {
+          if (dx < 0) onSwipeLeftRef.current && onSwipeLeftRef.current();
+          else onSwipeRightRef.current && onSwipeRightRef.current();
+          return;
+        }
+
+        // Tap to flip (short, minimal movement)
+        const isTap = dt < 250 && Math.abs(dx) < 8 && Math.abs(dy) < 8;
+        if (isTap) {
+          if (flipped) flipToFront();
+          else flipToBack();
+        }
+      },
+    })
+  ).current;
+
   return (
-    <TouchableWithoutFeedback onPress={() => (flipped ? flipToFront() : flipToBack())}>
-      <View className='w-full h-full'>
+    <View className='w-full h-full' {...panResponder.panHandlers}>
         <Animated.View
           className="flex flex-col gap-5"
           style={[
@@ -84,7 +126,6 @@ export const FlipCard = ({ front, back }: FlipCardProps) => {
           {back}
         </Animated.View>
       </View>
-    </TouchableWithoutFeedback>
   );
 };
 
