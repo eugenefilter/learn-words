@@ -37,6 +37,9 @@ const MainCardScreen = () => {
       console.log(prev)
       if (prev !== null) {
         setCard(prev)
+      } else {
+        const last = await CardModel.lastCard()
+        if (last) setCard(last)
       }    
     }
   }
@@ -47,6 +50,9 @@ const MainCardScreen = () => {
       console.log(next)
       if (next !== null) {
         setCard(next)
+      } else {
+        const first = await CardModel.firstCard()
+        if (first) setCard(first)
       }
     }
   }

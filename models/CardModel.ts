@@ -158,4 +158,38 @@ export class CardModel {
       show: false
     }
   }
+
+  static async firstCard(): Promise<TCard | null> {
+    const db = getDB();
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards ORDER BY id ASC LIMIT 1');
+    if (!result) return null;
+
+    const examples = await db.getAllAsync<TExample>(
+      'SELECT * FROM examples WHERE card_id = ?',
+      [result.id]
+    );
+
+    return {
+      ...result,
+      examples,
+      show: false,
+    };
+  }
+
+  static async lastCard(): Promise<TCard | null> {
+    const db = getDB();
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards ORDER BY id DESC LIMIT 1');
+    if (!result) return null;
+
+    const examples = await db.getAllAsync<TExample>(
+      'SELECT * FROM examples WHERE card_id = ?',
+      [result.id]
+    );
+
+    return {
+      ...result,
+      examples,
+      show: false,
+    };
+  }
 }
