@@ -8,8 +8,8 @@ interface ICardProps {
 
 const BackCard: FC<ICardProps> = ({card}) => {
   return (
-    <View className='bg-primary-800 h-[64%] border border-primary-200 mt-2.5 mx-5 rounded flex items-center justify-center'>
-      <Text className='text-white text-4xl mx-5 text-center'>
+    <View className='bg-primary-800 h-[64%] border border-primary-200 mt-3 mx-5 rounded-xl flex items-center justify-center px-6'>
+      <Text className='text-primary-100 text-4xl text-center'>
         {card.translation}
       </Text>
     </View>

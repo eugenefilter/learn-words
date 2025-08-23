@@ -13,14 +13,12 @@ const Button = ({ title, onPress, variant = 'primary', className }: ButtonProps)
   const base = 'px-4 py-3 rounded-lg items-center justify-center my-2'
   const styles = clsx(
     base,
-    variant === 'primary' && 'bg-primary-300',
-    variant === 'secondary' && 'bg-primary-800',
+    variant === 'primary' && 'bg-accent-600',
+    variant === 'secondary' && 'bg-primary-800 border border-primary-200',
     className
   )
 
-  const textStyles = clsx(
-    'text-white text-lg font-semibold'
-  )
+  const textStyles = clsx('text-white text-lg font-semibold')
 
   return (
     <Pressable className={styles} onPress={onPress}>

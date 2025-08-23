@@ -53,7 +53,7 @@ export default function AddCard() {
       <FlatList
         data={examples}
         keyExtractor={(item, i) => i.toString()}
-        renderItem={({ item }) => <Text className='text-primary-100 my-1'>– {item}</Text>}
+        renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
       />
 
       <Button title="Сохранить" onPress={() => save()} />

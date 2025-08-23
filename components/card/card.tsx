@@ -18,13 +18,13 @@ const renderItems = (item: string, key: number) => {
 
 const Card: FC<ICardProps> = ({card, onEdit, onDelete, onPress}) => {
   return (
-    <Pressable onPress={onPress} className='w-[90%] mx-auto my-3 rounded-lg p-5 flex flex-col bg-primary-800'>
+    <Pressable onPress={onPress} className='w-[92%] mx-auto my-4 rounded-xl p-6 flex flex-col bg-primary-800 border border-primary-200'>
       <View className="flex flex-row justify-between items-start mb-4">
         <View className='flex-1'>
           <Text className="text-2xl font-bold mb-2 text-left text-primary-100 uppercase">
             {card.word}
             </Text>
-          <Text className="text-xl text-primary-100">Some explain word</Text>
+          <Text className="text-base text-primary-100 opacity-80">Some explain word</Text>
         </View>
         <View className="flex flex-row gap-1">
           {/* <Pressable onPress={() => onEdit(card.id)} className="w-10 h-10">

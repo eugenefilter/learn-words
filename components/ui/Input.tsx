@@ -18,7 +18,7 @@ const Input = ({
 }: CustomTextInputProps) => {
 
   const textClass = clsx(
-    'w-full p-4 text-xl text-white border border-primary-300 rounded-lg bg-primary-300',
+    'w-full p-4 text-xl text-white rounded-xl bg-primary-300 border border-primary-200',
     className
   )
 

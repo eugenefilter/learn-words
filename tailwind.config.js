@@ -9,13 +9,18 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#fff", //"#202020",
-          100: "#d9ebeb",
-          200: "#e0e0e0",
-          300: "#042a2b",
-          800: "#052020",
-          900: "#041616"
+          DEFAULT: "#0b1616",
+          100: "#d9ebeb", // light text on dark bg
+          200: "#1e4747", // borders / subtle lines
+          300: "#143434", // surfaces / inputs
+          800: "#0e1c1c", // cards
+          900: "#0b1616"  // app background
         },
+        accent: {
+          500: "#2dd4bf",
+          600: "#14b8a6",
+          700: "#0d9488"
+        }
 
       },
     },
