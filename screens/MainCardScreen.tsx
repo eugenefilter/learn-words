@@ -1,13 +1,29 @@
 import { View } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import SearchInput from '@/components/ui/SearchInput';
 import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import FlipCardNavigator from '@/components/card/FlipCardNavigator';
+import { useLocalSearchParams } from 'expo-router';
 
 const MainCardScreen = () => {
   const [search, setSearch] = useState('')
   const [card, setCard] = useState<TCard | null>(null)
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  useEffect(() => {
+    const loadById = async () => {
+      if (id && typeof id === 'string') {
+        const found = await CardModel.findById(parseInt(id, 10))
+        if (found) {
+          setCard(found)
+          // Не перезаписываем ввод пользователя, если он уже что-то печатал
+          setSearch((prev) => (prev && prev.length > 0 ? prev : found.word))
+        }
+      }
+    }
+    loadById()
+  }, [id])
 
   const searchCardHandler = async (text: string) => {
     setSearch(text)
