@@ -55,7 +55,7 @@ const CardListScreen = () => {
   const debouncedSearch = useDebounce(search, 500)
 
   useEffect(() => {
-    findCards(search)
+    findCards(debouncedSearch)
   }, [debouncedSearch])
 
   return (
@@ -80,6 +80,7 @@ const CardListScreen = () => {
             card={item}
             onDelete={deleteCard}
             onEdit={(id) => router.push({ pathname: '/edit', params: { id: id.toString() } })}
+            onPress={() => router.push({ pathname: '/card', params: { id: item.id.toString() } })}
           />
         )}
       />
@@ -88,4 +89,3 @@ const CardListScreen = () => {
 }
 
 export default CardListScreen;
-

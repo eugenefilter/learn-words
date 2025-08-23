@@ -7,6 +7,7 @@ interface ICardProps {
   card: TCard,
   onEdit: (id: number) => void
   onDelete: (id: number) => void
+  onPress?: () => void
 }
 
 const renderItems = (item: string, key: number) => {
@@ -15,9 +16,9 @@ const renderItems = (item: string, key: number) => {
   </Text>
 }
 
-const Card: FC<ICardProps> = ({card, onEdit, onDelete}) => {
+const Card: FC<ICardProps> = ({card, onEdit, onDelete, onPress}) => {
   return (
-    <View className='w-[90%] mx-auto my-3 rounded-lg p-5 flex flex-col bg-primary-800'>
+    <Pressable onPress={onPress} className='w-[90%] mx-auto my-3 rounded-lg p-5 flex flex-col bg-primary-800'>
       <View className="flex flex-row justify-between items-start mb-4">
         <View className='flex-1'>
           <Text className="text-2xl font-bold mb-2 text-left text-primary-100 uppercase">
@@ -45,7 +46,7 @@ const Card: FC<ICardProps> = ({card, onEdit, onDelete}) => {
           }
         </ScrollView>
       </View> */}
-    </View>
+    </Pressable>
   )
 }
  

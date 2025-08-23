@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, FlatList, Text, View } from 'react-native';
+import { Alert, FlatList, Text, View } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
+import Button from '@/components/ui/Button';
 
 
 export default function AddCard() {
@@ -20,16 +21,19 @@ export default function AddCard() {
   };
 
   const save = async () => {
-    console.log('save')
-    const examplesSentence = [];
+    if (!word.trim() || !translation.trim()) {
+      Alert.alert('Заполните поля', 'Укажите слово и перевод.');
+      return;
+    }
 
+    const examplesSentence = [] as string[];
     for (const sentence of examples) {
-      examplesSentence.push(sentence);
+      if (sentence.trim()) examplesSentence.push(sentence.trim());
     }
 
     await CardModel.create(
-      word,
-      translation,
+      word.trim(),
+      translation.trim(),
       examplesSentence
     );
     
@@ -37,22 +41,22 @@ export default function AddCard() {
   };
 
   return (
-    <View className='h-full p-5'>
-      <Input value={word} onChangeText={setWord} placeholder='Word' className='my-2'/>
+    <View className='h-full p-5 bg-primary-900'>
+      <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2'/>
 
-      <Input value={translation} onChangeText={setTranslation} placeholder='Translation' className='my-2' />
+      <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
 
-      <Input value={example} onChangeText={setExample} placeholder='Example' className='my-2' />
+      <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
       
-      <Button title="Add Example" onPress={addExample} />
+      <Button title="Добавить пример" onPress={addExample} variant='secondary' />
 
       <FlatList
         data={examples}
         keyExtractor={(item, i) => i.toString()}
-        renderItem={({ item }) => <Text>– {item}</Text>}
+        renderItem={({ item }) => <Text className='text-primary-100 my-1'>– {item}</Text>}
       />
 
-      <Button title="Save" onPress={() => save()}/>
+      <Button title="Сохранить" onPress={() => save()} />
 
     </View>
   );

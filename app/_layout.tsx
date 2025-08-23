@@ -57,10 +57,10 @@ const [isReady, setIsReady] = useState(false);
             }}
           />
           <Tabs.Screen  
-            name="explore"
+            name="add"
             options={{
-              title: 'Explore',
-              tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color='#d9ebeb' />,
+              title: 'Add',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color='#d9ebeb' />,
             }}
           />
         </Tabs>

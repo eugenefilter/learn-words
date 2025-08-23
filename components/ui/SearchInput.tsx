@@ -20,7 +20,7 @@ const SearchInput = ({
       <Input 
         className="flex-1 mx-1 p-0 text-white text-xl"
         value={value}
-        placeholder="Search word ..."
+        placeholder={placeholder}
         onChangeText={onChangeText}
       />      
     </View>

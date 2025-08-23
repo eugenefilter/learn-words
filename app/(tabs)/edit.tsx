@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { Button, FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Text, TextInput, View } from 'react-native';
+import Button from '@/components/ui/Button';
 import { CardModel } from '@/models/CardModel';
 
 export default function EditCard() {
@@ -15,7 +16,7 @@ export default function EditCard() {
   useEffect(() => {
     if (params?.id && typeof params.id === 'string') {
       const fetch = async () => {
-        const card = await CardModel.find(parseInt(params.id));
+        const card = await CardModel.findById(parseInt(params.id));
         if (card) {
           setWord(card.word);
           setTranslation(card.translation);
@@ -45,15 +46,15 @@ export default function EditCard() {
 
   return (
     <View style={{ padding: 16 }}>
-      <Text>Word</Text>
-      <TextInput value={word} onChangeText={setWord} style={{ borderWidrth: 1, marginBottom: 8 }} />
+      <Text style={{ color: '#d9ebeb', marginBottom: 4 }}>Слово</Text>
+      <TextInput value={word} onChangeText={setWord} placeholder='Слово (например: stick)' placeholderTextColor={'#9fbfbf'} style={{ borderWidth: 1, borderColor: '#204444', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }} />
 
-      <Text>Translation</Text>
-      <TextInput value={translation} onChangeText={setTranslation} style={{ borderWidth: 1, marginBottom: 8 }} />
+      <Text style={{ color: '#d9ebeb', marginBottom: 4 }}>Перевод</Text>
+      <TextInput value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' placeholderTextColor={'#9fbfbf'} style={{ borderWidth: 1, borderColor: '#204444', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }} />
 
-      <Text>Example</Text>
-      <TextInput value={example} onChangeText={setExample} style={{ borderWidth: 1, marginBottom: 8 }} />
-      <Button title="Add Example" onPress={addExample} />
+      <Text style={{ color: '#d9ebeb', marginBottom: 4 }}>Пример</Text>
+      <TextInput value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' placeholderTextColor={'#9fbfbf'} style={{ borderWidth: 1, borderColor: '#204444', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }} />
+      <Button title="Добавить пример" onPress={addExample} variant='secondary' />
 
       <FlatList
         data={examples}
@@ -61,7 +62,7 @@ export default function EditCard() {
         renderItem={({ item }) => <Text>– {item}</Text>}
       />
 
-      <Button title="Update Card" onPress={update} />
+      <Button title="Сохранить изменения" onPress={update} />
     </View>
   );
 }

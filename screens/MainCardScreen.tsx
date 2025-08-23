@@ -1,11 +1,9 @@
 import { View } from 'react-native'
 import React, { useState } from 'react'
 import SearchInput from '@/components/ui/SearchInput';
-import { FlipCard } from '@/components/card/FlipCard';
-import BackCard from '@/components/card/BackCard';
-import FrontCard from '@/components/card/FrontCard';
 import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
+import FlipCardNavigator from '@/components/card/FlipCardNavigator';
 
 const MainCardScreen = () => {
   const [search, setSearch] = useState('')
@@ -15,7 +13,26 @@ const MainCardScreen = () => {
     setSearch(text)
     const searchResult = await CardModel.findByWord(text)
     setCard(searchResult)
-    console.log(search)
+  }
+
+  const handleSwipeLeft = async () => {
+    if (card !== null) {
+      const prev = await CardModel.prevCard(card.id)
+      console.log(prev)
+      if (prev !== null) {
+        setCard(prev)
+      }    
+    }
+  }
+
+  const handleSwipeRight = async () => {
+    if (card !== null) {
+      const next = await CardModel.nextCard(card.id)
+      console.log(next)
+      if (next !== null) {
+        setCard(next)
+      }
+    }
   }
 
   return (
@@ -27,10 +44,10 @@ const MainCardScreen = () => {
       />
 
       {card && (
-      <FlipCard 
-        front={<FrontCard card={card} />}
-
-        back={<BackCard card={card} />}
+      <FlipCardNavigator 
+          card={card} 
+          onSwipeLeft={handleSwipeLeft} 
+          onSwipeRight={handleSwipeRight} 
       />)}
     </View>
   )

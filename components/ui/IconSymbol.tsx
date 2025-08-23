@@ -19,7 +19,8 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'list.bullet': 'list',
   'magnifyingglass': 'search',
-  'menucard.fill': 'credit-card'
+  'menucard.fill': 'credit-card',
+  'plus.circle.fill': 'add-circle'
 } as IconMapping;
 
 /**

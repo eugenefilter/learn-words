@@ -7,8 +7,6 @@ interface ICardProps {
 }
 
 const FrontCard: FC<ICardProps> = ({card}) => {
-
-
   return (
     <View className='bg-primary-900 h-[80%] border border-primary-200 mt-5 mx-5 rounded'>
       <View className='flex flex-col justify-center items-center gap-8 mt-10 px-5'>

@@ -6,6 +6,7 @@ type CustomTextInputProps = {
   placeholder: string;
   className?: string;
   onChangeText: (text: string) => void;
+  placeholderTextColor?: string;
 };
 
 const Input = ({
@@ -27,6 +28,7 @@ const Input = ({
       value={value}
       placeholder={placeholder}
       onChangeText={onChangeText}
+      placeholderTextColor={props.placeholderTextColor ?? '#9fbfbf'}
       {...props}
     />
   )

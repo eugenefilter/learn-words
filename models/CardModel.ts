@@ -34,16 +34,18 @@ export class CardModel {
     return cardsRaw;
   }
 
-  static async find(title: string): Promise<TCard[] | []> {
+  static async find(text: string): Promise<TCard[] | []> {
     const db = getDB();
-   
+
+    // Используем маску и поиск по word/translation без учета регистра
+    const mask = `%${text}%`;
     const cardsRaw = await db.getAllAsync<TCard>(
-      'SELECT * FROM cards WHERE title LIKE ?', 
-      [title]
+      'SELECT * FROM cards WHERE word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE',
+      [mask, mask]
     );
 
     if (!cardsRaw) return [];
-  
+
     return cardsRaw;
   }
 
@@ -119,5 +121,41 @@ export class CardModel {
         await db.runAsync('INSERT INTO examples (card_id, sentence) VALUES (?, ?)', [id, sentence]);
       }
     });
+  }
+
+  static async nextCard(currentID: number): Promise<TCard | null> {
+    const db = getDB();
+
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id > ? ORDER BY id LIMIT 1', [currentID])
+    if (!result) return null
+  
+    const examples = await db.getAllAsync<TExample>(
+      'SELECT * FROM examples WHERE card_id = ?',
+      [result.id]
+    )
+  
+    return {
+      ...result,
+      examples,
+      show: false
+    }
+  }
+
+  static async prevCard(currentID: number): Promise<TCard | null> {
+    const db = getDB()
+
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id < ? ORDER BY id LIMIT 1', [currentID])
+    if (!result) return null
+  
+    const examples = await db.getAllAsync<TExample>(
+      'SELECT * FROM examples WHERE card_id = ?',
+      [result.id]
+    )
+  
+    return {
+      ...result,
+      examples,
+      show: false
+    }
   }
 }
