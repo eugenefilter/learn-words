@@ -126,7 +126,7 @@ export class CardModel {
   static async nextCard(currentID: number): Promise<TCard | null> {
     const db = getDB();
 
-    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id > ? ORDER BY id LIMIT 1', [currentID])
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id > ? ORDER BY id ASC LIMIT 1', [currentID])
     if (!result) return null
   
     const examples = await db.getAllAsync<TExample>(
@@ -144,7 +144,7 @@ export class CardModel {
   static async prevCard(currentID: number): Promise<TCard | null> {
     const db = getDB()
 
-    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id < ? ORDER BY id LIMIT 1', [currentID])
+    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id < ? ORDER BY id DESC LIMIT 1', [currentID])
     if (!result) return null
   
     const examples = await db.getAllAsync<TExample>(

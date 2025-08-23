@@ -18,6 +18,7 @@ const FlipCardNavigator: React.FC<FlipCardNavigatorProps> = ({
 }) => {
   return (
     <FlipCard
+      key={card.id}
       front={<FrontCard card={card} />}
       back={<BackCard card={card} />}
       onSwipeLeft={onSwipeLeft}
