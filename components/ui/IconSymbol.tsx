@@ -17,6 +17,7 @@ const MAPPING = {
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
   'list.bullet': 'list',
   'magnifyingglass': 'search',
   'menucard.fill': 'credit-card',

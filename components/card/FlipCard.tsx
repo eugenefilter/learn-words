@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, PanResponder, StyleSheet, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, View, TouchableWithoutFeedback } from 'react-native';
 
 interface FlipCardProps {
   front: React.ReactNode;
@@ -65,37 +65,30 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
   // Handle swipe and tap (flip) without conflicts
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5,
-      onPanResponderGrant: (_, gesture) => {
-        touchStartX.current = gesture.x0;
-        touchStartY.current = gesture.y0;
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderGrant: (_, g) => {
+        touchStartX.current = g.x0;
+        touchStartY.current = g.y0;
         touchStartTime.current = Date.now();
       },
-      onPanResponderRelease: (_, gesture) => {
-        const dx = gesture.moveX - touchStartX.current;
-        const dy = gesture.moveY - touchStartY.current;
-        const dt = Date.now() - touchStartTime.current;
+      onPanResponderRelease: (_, g) => {
+        const dx = g.dx;
+        const dy = g.dy;
 
-        // Horizontal swipe
-        if (Math.abs(dx) >= 50 && Math.abs(dy) < 40) {
+        // Horizontal swipe when clear enough
+        if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
           if (dx < 0) onSwipeLeftRef.current && onSwipeLeftRef.current();
           else onSwipeRightRef.current && onSwipeRightRef.current();
-          return;
-        }
-
-        // Tap to flip (short, minimal movement)
-        const isTap = dt < 250 && Math.abs(dx) < 8 && Math.abs(dy) < 8;
-        if (isTap) {
-          if (flipped) flipToFront();
-          else flipToBack();
         }
       },
     })
   ).current;
 
   return (
-    <View className='w-full h-full' {...panResponder.panHandlers}>
+      <TouchableWithoutFeedback onPress={() => (flipped ? flipToFront() : flipToBack())}>
+        <View className='w-full h-full' {...panResponder.panHandlers}>
         <Animated.View
           className="flex flex-col gap-5"
           style={[
@@ -125,7 +118,8 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
         >
           {back}
         </Animated.View>
-      </View>
+        </View>
+      </TouchableWithoutFeedback>
   );
 };
 
