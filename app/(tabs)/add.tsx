@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Text, View } from 'react-native';
+import { Alert, FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -41,23 +41,31 @@ export default function AddCard() {
   };
 
   return (
-    <View className='h-full p-5 bg-primary-900'>
-      <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2'/>
+    <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View className='flex-1 px-5 py-6'>
+        <View>
+          <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
-      <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
+          <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
 
-      <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
-      
-      <Button title="Добавить пример" onPress={addExample} variant='secondary' />
+          <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
 
-      <FlatList
-        data={examples}
-        keyExtractor={(item, i) => i.toString()}
-        renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
-      />
+          <Button title="Добавить пример" onPress={addExample} variant='secondary' className='w-full mt-2' />
+        </View>
 
-      <Button title="Сохранить" onPress={() => save()} />
+        <View className='flex-1 mt-4 border-t border-primary-200 pt-3'>
+          <Text className='text-primary-100 opacity-90 mb-2'>Примеры:</Text>
+          <FlatList
+            data={examples}
+            keyExtractor={(item, i) => i.toString()}
+            renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
+          />
+        </View>
 
-    </View>
+        <View className='mt-4'>
+          <Button title="Сохранить" onPress={() => save()} className='w-full' />
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
