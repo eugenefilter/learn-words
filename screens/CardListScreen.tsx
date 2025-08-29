@@ -53,7 +53,7 @@ const CardListScreen = () => {
   }, [debouncedSearch])
 
   return (
-    <View className='bg-primary-900'>
+    <View className='flex-1 bg-primary-900'>
       {/* <TouchableOpacity 
         className='w-full rounded py-5'
         onPress={() => router.push('/add')}
@@ -67,6 +67,8 @@ const CardListScreen = () => {
       />
 
       <FlatList
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 16 }}
         data={cards}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
