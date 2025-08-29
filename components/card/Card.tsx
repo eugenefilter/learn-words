@@ -27,13 +27,13 @@ const Card: FC<ICardProps> = ({card, onEdit, onDelete, onPress}) => {
           <Text className="text-base text-primary-100 opacity-80">Some explain word</Text>
         </View>
         <View className="flex flex-row gap-1">
-          {/* <Pressable onPress={() => onEdit(card.id)} className="w-10 h-10">
-            <Pencil color="#252525" />
-          </Pressable> */}
+          <Pressable onPress={() => onEdit(card.id)} className="w-10 h-10 items-center justify-center">
+            <Pencil color="#d9ebeb" />
+          </Pressable>
           
-          {/* <Pressable onPress={() =>onDelete(card.id)} className="w-10 h-10">
-          <Trash color="red" />
-          </Pressable> */}
+          <Pressable onPress={() => onDelete(card.id)} className="w-10 h-10 items-center justify-center">
+            <Trash color="#ef4444" />
+          </Pressable>
       
         </View>
       </View>
