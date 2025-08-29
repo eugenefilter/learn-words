@@ -72,7 +72,7 @@ export default function AddCard() {
           />
         </View>
       </View>
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12 }}>
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12, zIndex: 20, elevation: 20 }}>
         <Button title="Сохранить" onPress={() => save()} className='w-full' />
       </View>
 

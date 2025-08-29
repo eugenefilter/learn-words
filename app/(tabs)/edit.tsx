@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect, useCallback } from 'react';
 import { FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -18,21 +18,28 @@ export default function EditCard() {
   const [transcription, setTranscription] = useState('');
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
+  const [cardId, setCardId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (params?.id && typeof params.id === 'string') {
-      const fetch = async () => {
-        const card = await CardModel.findById(parseInt(params.id as string, 10));
-        if (card) {
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const load = async () => {
+        const rawId = params?.id;
+        if (!rawId || typeof rawId !== 'string') return;
+        const idNum = parseInt(rawId, 10);
+        setCardId(idNum);
+        const card = await CardModel.findById(idNum);
+        if (active && card) {
           setWord(card.word);
           setTranslation(card.translation);
           setTranscription(card.transcription || '');
           setExamples(card.examples.map(e => e.sentence));
         }
       };
-      fetch();
-    }
-  }, []);
+      load();
+      return () => { active = false };
+    }, [params?.id])
+  );
 
   const addExample = () => {
     if (example.trim()) {
@@ -42,8 +49,9 @@ export default function EditCard() {
   };
 
   const update = async () => {
+    if (!cardId) return;
     await CardModel.update(
-      parseInt(params.id as string, 10),
+      cardId,
       word,
       translation,
       transcription.trim() || null,
@@ -76,7 +84,7 @@ export default function EditCard() {
           />
         </View>
       </View>
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12 }}>
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12, zIndex: 20, elevation: 20 }}>
         <Button title="Сохранить изменения" onPress={update} className='w-full' />
       </View>
     </KeyboardAvoidingView>
