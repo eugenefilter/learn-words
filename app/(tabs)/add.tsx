@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 
 export default function AddCard() {
@@ -16,6 +17,7 @@ export default function AddCard() {
   const [translation, setTranslation] = useState('');
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
+  const [validationVisible, setValidationVisible] = useState(false);
 
   const addExample = () => {
     if (example.trim()) {
@@ -26,7 +28,7 @@ export default function AddCard() {
 
   const save = async () => {
     if (!word.trim() || !translation.trim()) {
-      Alert.alert('Заполните поля', 'Укажите слово и перевод.');
+      setValidationVisible(true);
       return;
     }
 
@@ -69,6 +71,16 @@ export default function AddCard() {
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12 }}>
         <Button title="Сохранить" onPress={() => save()} className='w-full' />
       </View>
+
+      <ConfirmDialog
+        visible={validationVisible}
+        title='Заполните поля'
+        message='Укажите слово и перевод.'
+        confirmText='Понятно'
+        showCancel={false}
+        onCancel={() => setValidationVisible(false)}
+        onConfirm={() => setValidationVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -10,6 +10,7 @@ type ConfirmDialogProps = {
   cancelText?: string
   onConfirm: () => void
   onCancel: () => void
+  showCancel?: boolean
 }
 
 const ConfirmDialog = ({
@@ -20,6 +21,7 @@ const ConfirmDialog = ({
   cancelText = 'Отмена',
   onConfirm,
   onCancel,
+  showCancel = true,
 }: ConfirmDialogProps) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -28,14 +30,20 @@ const ConfirmDialog = ({
         <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5'>
           <Text className='text-primary-100 text-xl font-semibold mb-2'>{title}</Text>
           <Text className='text-primary-100 opacity-90'>{message}</Text>
-          <View className='flex-row gap-3 mt-5'>
-            <View className='flex-1'>
-              <Button title={cancelText} variant='secondary' onPress={onCancel} className='w-full' />
+          {showCancel ? (
+            <View className='flex-row gap-3 mt-5'>
+              <View className='flex-1'>
+                <Button title={cancelText} variant='secondary' onPress={onCancel} className='w-full' />
+              </View>
+              <View className='flex-1'>
+                <Button title={confirmText} onPress={onConfirm} className='w-full' />
+              </View>
             </View>
-            <View className='flex-1'>
+          ) : (
+            <View className='mt-5'>
               <Button title={confirmText} onPress={onConfirm} className='w-full' />
             </View>
-          </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -43,4 +51,3 @@ const ConfirmDialog = ({
 }
 
 export default ConfirmDialog
-
