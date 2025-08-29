@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import { CardModel } from '@/models/CardModel';
 
 export default function EditCard() {
@@ -16,7 +17,7 @@ export default function EditCard() {
   useEffect(() => {
     if (params?.id && typeof params.id === 'string') {
       const fetch = async () => {
-        const card = await CardModel.findById(parseInt(params.id));
+        const card = await CardModel.findById(parseInt(params.id as string, 10));
         if (card) {
           setWord(card.word);
           setTranslation(card.translation);
@@ -36,7 +37,7 @@ export default function EditCard() {
 
   const update = async () => {
     await CardModel.update(
-      parseInt(params.id as string),
+      parseInt(params.id as string, 10),
       word,
       translation,
       examples
@@ -45,24 +46,31 @@ export default function EditCard() {
   };
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ color: '#d9ebeb', marginBottom: 4 }}>Слово</Text>
-      <TextInput value={word} onChangeText={setWord} placeholder='Слово (например: stick)' placeholderTextColor={'#9fbfbf'} style={{ borderWidth: 1, borderColor: '#204444', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }} />
+    <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View className='flex-1 px-5 py-6'>
+        <View>
+          <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
-      <Text style={{ color: '#d9ebeb', marginBottom: 4 }}>Перевод</Text>
-      <TextInput value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' placeholderTextColor={'#9fbfbf'} style={{ borderWidth: 1, borderColor: '#204444', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }} />
+          <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
 
-      <Text style={{ color: '#d9ebeb', marginBottom: 4 }}>Пример</Text>
-      <TextInput value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' placeholderTextColor={'#9fbfbf'} style={{ borderWidth: 1, borderColor: '#204444', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }} />
-      <Button title="Добавить пример" onPress={addExample} variant='secondary' />
+          <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
 
-      <FlatList
-        data={examples}
-        keyExtractor={(item, i) => i.toString()}
-        renderItem={({ item }) => <Text>– {item}</Text>}
-      />
+          <Button title="Добавить пример" onPress={addExample} variant='secondary' className='w-full mt-2' />
+        </View>
 
-      <Button title="Сохранить изменения" onPress={update} />
-    </View>
+        <View className='flex-1 mt-4 border-t border-primary-200 pt-3'>
+          <Text className='text-primary-100 opacity-90 mb-2'>Примеры:</Text>
+          <FlatList
+            data={examples}
+            keyExtractor={(item, i) => i.toString()}
+            renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
+          />
+        </View>
+
+        <View className='mt-4'>
+          <Button title="Сохранить изменения" onPress={update} className='w-full' />
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
