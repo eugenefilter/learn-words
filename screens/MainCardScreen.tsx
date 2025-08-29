@@ -1,14 +1,13 @@
-import { Alert, Pressable, View, Text } from 'react-native'
+import { Pressable, View, Text } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import SearchInput from '@/components/ui/SearchInput';
 import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import FlipCardNavigator from '@/components/card/FlipCardNavigator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Button from '@/components/ui/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Pencil, Trash } from 'lucide-react-native'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const MainCardScreen = () => {
   const insets = useSafeAreaInsets();
@@ -16,6 +15,7 @@ const MainCardScreen = () => {
   const [search, setSearch] = useState('')
   const [card, setCard] = useState<TCard | null>(null)
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const [confirmVisible, setConfirmVisible] = useState(false)
 
   useEffect(() => {
     const loadById = async () => {
@@ -77,37 +77,28 @@ const MainCardScreen = () => {
 
   const handleDelete = () => {
     if (!card) return;
-    const currentId = card.id;
-    Alert.alert(
-      'Подтвердите удаление',
-      'Вы уверены, что хотите удалить эту карточку?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
-            await CardModel.delete(currentId);
-            // Пытаемся перейти к следующей карточке, иначе к предыдущей, иначе очищаем экран
-            const next = await CardModel.nextCard(currentId);
-            if (next) {
-              setCard(next);
-              setSearch(next.word);
-              return;
-            }
-            const prev = await CardModel.prevCard(currentId);
-            if (prev) {
-              setCard(prev);
-              setSearch(prev.word);
-              return;
-            }
-            // Больше карточек нет
-            setCard(null);
-            setSearch('');
-          }
-        }
-      ]
-    );
+    setConfirmVisible(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!card) return
+    const currentId = card.id
+    await CardModel.delete(currentId)
+    setConfirmVisible(false)
+    const next = await CardModel.nextCard(currentId)
+    if (next) {
+      setCard(next)
+      setSearch(next.word)
+      return
+    }
+    const prev = await CardModel.prevCard(currentId)
+    if (prev) {
+      setCard(prev)
+      setSearch(prev.word)
+      return
+    }
+    setCard(null)
+    setSearch('')
   }
 
   return (
@@ -118,26 +109,27 @@ const MainCardScreen = () => {
         onChangeText={searchCardHandler}
       />
 
-      {card && (
-        <View style={{ position: 'absolute', top: insets.top + 10, right: 16, zIndex: 10 }} className='flex-row gap-2'>
-          <Pressable onPress={handleEdit} className='w-10 h-10 items-center justify-center rounded-full border border-primary-300'>
-            <Pencil color={'#d9ebeb'} size={20} />
-          </Pressable>
-          <Pressable onPress={handleDelete} className='w-10 h-10 items-center justify-center rounded-full border border-primary-300'>
-            <Trash color={'#ef4444'} size={20} />
-          </Pressable>
-        </View>
-      )}
-
       <View className='flex-1'>
         {card && (
           <FlipCardNavigator 
             card={card} 
             onSwipeLeft={handleSwipeLeft} 
             onSwipeRight={handleSwipeRight} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
         )}
       </View>
+
+      <ConfirmDialog 
+        visible={confirmVisible}
+        title='Удалить карточку'
+        message='Вы уверены, что хотите удалить эту карточку?'
+        confirmText='Удалить'
+        cancelText='Отмена'
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={confirmDelete}
+      />
 
       {card && (
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 70 }} className='px-4'>

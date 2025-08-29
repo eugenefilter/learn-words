@@ -1,17 +1,20 @@
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useState, useCallback, useEffect } from 'react'
-import { Alert, View } from 'react-native'
+import { View } from 'react-native'
 import { FlatList } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/Card'
 import SearchInput from '@/components/ui/SearchInput'
 import useDebounce from '@/utils/useDebounce'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const CardListScreen = () => {
   const router = useRouter()
   const [cards, setCards] = useState<TCard[]>([])
   const [search, setSearch] = useState('')
+  const [confirmVisible, setConfirmVisible] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
   const loadCards = async () => {    
     setCards(await CardModel.all());
@@ -24,26 +27,17 @@ const CardListScreen = () => {
     if (result !== null) setCards(result)
   };
 
-  const deleteCard = async (id: number) => {
-    Alert.alert(
-      'Подтвердите удаление',
-      'Вы уверены, что хотите удалить эту карточку?',
-      [
-        {
-          text: 'Отмена',
-          style: 'cancel',
-          // Ничего не делаем, просто закрывается диалог
-        },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
-            await CardModel.delete(id);
-            loadCards(); // обновим список
-          }
-        }
-      ]
-    )
+  const requestDelete = (id: number) => {
+    setPendingDeleteId(id)
+    setConfirmVisible(true)
+  }
+
+  const confirmDelete = async () => {
+    if (pendingDeleteId === null) return
+    await CardModel.delete(pendingDeleteId)
+    setConfirmVisible(false)
+    setPendingDeleteId(null)
+    loadCards() // обновим список
   }
 
   useFocusEffect(
@@ -78,11 +72,21 @@ const CardListScreen = () => {
         renderItem={({ item }) => (
           <Card 
             card={item}
-            onDelete={deleteCard}
+            onDelete={requestDelete}
             onEdit={(id) => router.push({ pathname: '/edit', params: { id: id.toString() } })}
             onPress={() => router.push({ pathname: '/card', params: { id: item.id.toString() } })}
           />
         )}
+      />
+
+      <ConfirmDialog
+        visible={confirmVisible}
+        title='Удалить карточку'
+        message='Вы уверены, что хотите удалить эту карточку?'
+        confirmText='Удалить'
+        cancelText='Отмена'
+        onCancel={() => { setConfirmVisible(false); setPendingDeleteId(null) }}
+        onConfirm={confirmDelete}
       />
     </View>
   );
