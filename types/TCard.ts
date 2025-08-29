@@ -2,6 +2,8 @@ export type TCard = {
   id: number;
   word: string;
   translation: string;
+  transcription?: string;
+  explanation?: string;
   examples: TExample[];
   show?: boolean;
 };

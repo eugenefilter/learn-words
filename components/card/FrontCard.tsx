@@ -30,9 +30,11 @@ const FrontCard: FC<ICardProps> = ({card, onEdit, onDelete}) => {
         <Text className='text-primary-100 text-4xl'>
           {card.word}
         </Text>
-        <Text className='text-primary-100 text-2xl opacity-80'>
-          /stɪk/
-        </Text>
+        {card.transcription ? (
+          <Text className='text-primary-100 text-2xl opacity-80'>
+            {card.transcription}
+          </Text>
+        ) : null}
         <Text className='text-primary-100 text-xl opacity-90 text-center'>
           to limit yourself to doing or using one particular thing and not change to anything else
         </Text>

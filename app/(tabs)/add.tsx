@@ -15,6 +15,7 @@ export default function AddCard() {
   const tabBarHeight = useBottomTabBarHeight();
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
+  const [transcription, setTranscription] = useState('');
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
   const [validationVisible, setValidationVisible] = useState(false);
@@ -40,7 +41,8 @@ export default function AddCard() {
     await CardModel.create(
       word.trim(),
       translation.trim(),
-      examplesSentence
+      transcription.trim() || null,
+      examplesSentence,
     );
     
     router.replace('/');
@@ -53,6 +55,8 @@ export default function AddCard() {
           <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
           <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
+
+          <Input value={transcription} onChangeText={setTranscription} placeholder='Транскрипция (например: /stɪk/)' className='my-2' />
 
           <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
 

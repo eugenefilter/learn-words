@@ -15,6 +15,7 @@ export default function EditCard() {
 
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
+  const [transcription, setTranscription] = useState('');
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
 
@@ -25,6 +26,7 @@ export default function EditCard() {
         if (card) {
           setWord(card.word);
           setTranslation(card.translation);
+          setTranscription(card.transcription || '');
           setExamples(card.examples.map(e => e.sentence));
         }
       };
@@ -44,6 +46,7 @@ export default function EditCard() {
       parseInt(params.id as string, 10),
       word,
       translation,
+      transcription.trim() || null,
       examples
     );
     router.replace('/');
@@ -56,6 +59,8 @@ export default function EditCard() {
           <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
           <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
+
+          <Input value={transcription} onChangeText={setTranscription} placeholder='Транскрипция (например: /stɪk/)' className='my-2' />
 
           <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
 
