@@ -5,11 +5,13 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { CardModel } from '@/models/CardModel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 export default function EditCard() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
@@ -49,7 +51,7 @@ export default function EditCard() {
 
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View className='flex-1 px-5 pt-6 pb-24'>
+      <View className='flex-1 px-5 pt-6 pb-24' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 96 }}>
         <View>
           <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
@@ -69,7 +71,7 @@ export default function EditCard() {
           />
         </View>
       </View>
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: insets.bottom + 12 }}>
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12 }}>
         <Button title="Сохранить изменения" onPress={update} className='w-full' />
       </View>
     </KeyboardAvoidingView>
