@@ -4,10 +4,14 @@ import { Alert, FlatList, Text, View, KeyboardAvoidingView, Platform } from 'rea
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 
 export default function AddCard() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
   const [examples, setExamples] = useState<string[]>([]);
@@ -42,7 +46,7 @@ export default function AddCard() {
 
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View className='flex-1 px-5 py-6'>
+      <View className='flex-1 px-5 pt-6 pb-24' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 96 }}>
         <View>
           <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
@@ -61,10 +65,9 @@ export default function AddCard() {
             renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
           />
         </View>
-
-        <View className='mt-4'>
-          <Button title="Сохранить" onPress={() => save()} className='w-full' />
-        </View>
+      </View>
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12 }}>
+        <Button title="Сохранить" onPress={() => save()} className='w-full' />
       </View>
     </KeyboardAvoidingView>
   );
