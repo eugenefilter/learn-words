@@ -1,5 +1,5 @@
 import React from 'react'
-import { Pressable, Text } from 'react-native'
+import { Pressable, Text, Platform } from 'react-native'
 import clsx from 'clsx'
 
 type ButtonProps = {
@@ -24,7 +24,14 @@ const Button = ({ title, onPress, variant = 'primary', className }: ButtonProps)
     <Pressable
       className={styles}
       onPress={onPress}
-      style={variant === 'primary' ? { backgroundColor: '#14b8a6' } : undefined}
+      android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+      style={({ pressed }) => [
+        pressed ? {
+          opacity: Platform.OS === 'ios' ? 0.9 : 1,
+          transform: [{ scale: 0.94 }],
+          backgroundColor: variant === 'primary' ? '#0d9488' : '#1e4747', // accent-700 / primary-200
+        } : undefined,
+      ]}
     >
       <Text className={textStyles}>{title}</Text>
     </Pressable>

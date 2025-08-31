@@ -24,6 +24,11 @@ export const initDatabase = async (): Promise<void> => {
           sentence TEXT NOT NULL, 
           FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE);`
       );
+
+      // Мягкая миграция: если таблица cards создана по старой схеме,
+      // пытаемся добавить недостающие колонки. Ошибки игнорируем.
+      try { await db.execAsync('ALTER TABLE cards ADD COLUMN explanation TEXT;'); } catch {}
+      try { await db.execAsync('ALTER TABLE cards ADD COLUMN transcription TEXT;'); } catch {}
     });
   }
 };

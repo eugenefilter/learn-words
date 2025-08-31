@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Toast from '@/components/ui/Toast';
 
 
 export default function AddCard() {
@@ -19,6 +20,9 @@ export default function AddCard() {
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
   const [validationVisible, setValidationVisible] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
   const addExample = () => {
     if (example.trim()) {
@@ -38,14 +42,22 @@ export default function AddCard() {
       if (sentence.trim()) examplesSentence.push(sentence.trim());
     }
 
-    await CardModel.create(
-      word.trim(),
-      translation.trim(),
-      transcription.trim() || null,
-      examplesSentence,
-    );
-    
-    router.replace('/');
+    try {
+      await CardModel.create(
+        word.trim(),
+        translation.trim(),
+        transcription.trim() || null,
+        examplesSentence,
+      );
+      setToastType('success');
+      setToastMessage('Карточка сохранена');
+      setToastVisible(true);
+      setTimeout(() => router.replace('/'), 600);
+    } catch (e) {
+      setToastType('error');
+      setToastMessage('Не удалось сохранить ' + e.message);
+      setToastVisible(true);
+    }
   };
 
   return (
@@ -84,6 +96,14 @@ export default function AddCard() {
         showCancel={false}
         onCancel={() => setValidationVisible(false)}
         onConfirm={() => setValidationVisible(false)}
+      />
+
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        position='top'
+        onHide={() => setToastVisible(false)}
       />
     </KeyboardAvoidingView>
   );

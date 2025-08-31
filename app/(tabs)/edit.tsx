@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input';
 import { CardModel } from '@/models/CardModel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import Toast from '@/components/ui/Toast';
 
 export default function EditCard() {
   const router = useRouter();
@@ -19,6 +20,9 @@ export default function EditCard() {
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
   const [cardId, setCardId] = useState<number | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
   useFocusEffect(
     useCallback(() => {
@@ -50,14 +54,23 @@ export default function EditCard() {
 
   const update = async () => {
     if (!cardId) return;
-    await CardModel.update(
-      cardId,
-      word,
-      translation,
-      transcription.trim() || null,
-      examples
-    );
-    router.replace('/');
+    try {
+      await CardModel.update(
+        cardId,
+        word,
+        translation,
+        transcription.trim() || null,
+        examples
+      );
+      setToastType('success');
+      setToastMessage('Изменения сохранены');
+      setToastVisible(true);
+      setTimeout(() => router.replace('/'), 600);
+    } catch (e) {
+      setToastType('error');
+      setToastMessage('Не удалось сохранить изменения');
+      setToastVisible(true);
+    }
   };
 
   return (
@@ -87,6 +100,13 @@ export default function EditCard() {
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12, zIndex: 20, elevation: 20 }}>
         <Button title="Сохранить изменения" onPress={update} className='w-full' />
       </View>
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        position='top'
+        onHide={() => setToastVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
