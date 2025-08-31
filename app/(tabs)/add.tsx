@@ -55,7 +55,8 @@ export default function AddCard() {
       setTimeout(() => router.replace('/'), 600);
     } catch (e) {
       setToastType('error');
-      setToastMessage('Не удалось сохранить ' + e.message);
+      const msg = e instanceof Error ? e.message : String(e);
+      setToastMessage('Не удалось сохранить: ' + msg);
       setToastVisible(true);
     }
   };
