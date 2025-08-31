@@ -65,7 +65,13 @@ export default function EditCard() {
       setToastType('success');
       setToastMessage('Изменения сохранены');
       setToastVisible(true);
-      setTimeout(() => router.replace('/'), 600);
+      setTimeout(() => {
+        if (cardId) {
+          router.replace({ pathname: '/card', params: { id: String(cardId) } });
+        } else {
+          router.replace('/card');
+        }
+      }, 600);
     } catch (e) {
       setToastType('error');
       setToastMessage('Не удалось сохранить изменения');
