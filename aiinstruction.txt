@@ -28,3 +28,57 @@
 - screens/CardListScreen.tsx — растянут тёмный фон, паддинг списка.
 
 Следовать этим паттернам для новых экранов и правок.
+
+Дополнительные сведения о приложении (для другого ИИ):
+
+- Архитектура/навигация:
+  - Используется `expo-router` с вкладками в `app/_layout.tsx` (Tabs: `index`, `card`, `add`). Хедер скрыт, тёмный фон.
+  - Основные экраны:
+    - Список карточек: `app/index.tsx` → `screens/CardListScreen.tsx`.
+    - Просмотр карточки: `app/card.tsx` → `screens/MainCardScreen.tsx`.
+    - Добавление: `app/(tabs)/add.tsx`.
+    - Редактирование: `app/(tabs)/edit.tsx` (переход из списка и из карточки с `id`).
+  - В `MainCardScreen` карточка грузится по `id` из query или первая/последняя. Есть свайпы влево/вправо (prev/next) и удаление с подтверждением.
+
+- База данных (expo-sqlite):
+  - Инициализация: `database/database.ts` через `initDatabase()` (вызов в `app/_layout.tsx`).
+  - Таблицы:
+    - `cards(id INTEGER PK, word TEXT NOT NULL, translation TEXT NOT NULL, explanation TEXT, transcription TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`
+    - `examples(id INTEGER PK, card_id INTEGER NOT NULL, sentence TEXT NOT NULL, FK → cards(id) ON DELETE CASCADE)`
+  - Есть мягкая миграция: при init добавляются недостающие колонки `explanation`, `transcription` (ALTER TABLE; ошибки игнорируются).
+  - Модель: `models/CardModel.ts` (методы: `all`, `find`, `findByWord`, `findById`, `create`, `update`, `delete`, `nextCard`, `prevCard`, `firstCard`, `lastCard`).
+  - Типы: `types/TCard.ts`, `types/TExample` (карточка возвращается вместе с массивом `examples`).
+
+- Правила UX/верстки:
+  - Тёмная тема: корневые контейнеры `flex-1 bg-primary-900`; избегать белых панелей.
+  - Safe area и вкладки: не перекрывать home-индикатор и таб-бар.
+  - Клавиатура: на iOS использовать `KeyboardAvoidingView` с `behavior='padding'` на формах Add/Edit.
+  - На Add/Edit кнопка «Сохранить» зафиксирована поверх контента: позиционирование `bottom = tabBarHeight + insets.bottom + 12`. Контенту — дополнительный `paddingBottom`.
+
+- Валидация и уведомления:
+  - Валидация на Add/Edit — через `components/ui/ConfirmDialog` (фирменная модалка). Для простого уведомления без отмены — `showCancel={false}`, кнопка «Понятно».
+  - Системные `Alert` не использовать.
+  - Уведомления успеха/ошибки — не модалка, а тост: `components/ui/Toast.tsx` (позиция по умолчанию top, авто скрытие; типы: `success|error|info`).
+  - Реализация тостов в Add/Edit: показывается при сохранении/ошибке; после успеха небольшой delay и переход.
+
+- Потоки после сохранения:
+  - Add (`app/(tabs)/add.tsx`): при успехе показывает тост «Карточка сохранена», затем `router.replace('/')` (в список) с задержкой ~600мс.
+  - Edit (`app/(tabs)/edit.tsx`): при успехе тост «Изменения сохранены», затем `router.replace('/card?id=...')` (возврат на ту же карточку) с задержкой ~600мс.
+
+- Отображение карточки:
+  - Компонент передней стороны: `components/card/FrontCard.tsx` — показывает `word`, затем `transcription` (важно: именно транскрипция должна сохраняться и выводиться), список примеров на границе.
+  - Навигация и действия (редактировать/удалить) реализованы в `screens/MainCardScreen.tsx` и `components/card/FlipCardNavigator`.
+
+- Кнопки и эффекты нажатия:
+  - Общий компонент: `components/ui/Button.tsx` (props: `title`, `onPress`, `variant='primary'|'secondary'`, `className`).
+  - Визуал нажатия: `Pressable` с ripple на Android; на iOS уменьшение scale и затемнение фона (primary → `#0d9488`, secondary → `#1e4747`).
+
+- Поиск и навигация карточек:
+  - Поиск в `MainCardScreen`: `findByWord` по `word`/`translation` (COLLATE NOCASE), обновляет текущую карточку.
+  - Свайпы: `prevCard`/`nextCard`, при отсутствии циклично переходят к `lastCard`/`firstCard`.
+  - Удаление: через `ConfirmDialog`, затем выбирается соседняя карточка (next → prev), иначе состояние очищается.
+
+- Прочее:
+  - Цвета/палитра: `tailwind.config.js` (`primary`, `accent`). Проекты используют NativeWind; классы tailwind в `className`.
+  - `CardListScreen.tsx`: список карточек, навигация на карточку и редактирование по id.
+  - Старайтесь держать размеры зоны касания ≥ 44pt и контраст из палитры `primary`.
