@@ -1,6 +1,7 @@
 import { View, Text, Pressable, ScrollView } from 'react-native'
 import React, {FC} from 'react'
 import { Pencil, Trash } from 'lucide-react-native'
+import { IconSymbol } from '@/components/ui/IconSymbol'
 import { TCard } from '@/types/TCard'
 
 interface ICardProps {
@@ -21,9 +22,16 @@ const Card: FC<ICardProps> = ({card, onEdit, onDelete, onPress}) => {
     <Pressable onPress={onPress} className='w-[92%] mx-auto my-4 rounded-xl p-6 flex flex-col bg-primary-800 border border-primary-200'>
       <View className="flex flex-row justify-between items-start mb-4">
         <View className='flex-1'>
-          <Text className="text-2xl font-bold mb-2 text-left text-primary-100 uppercase">
-            {card.word}
+          <View className='flex-row items-center gap-2'>
+            <Text className="text-2xl font-bold mb-2 text-left text-primary-100 uppercase">
+              {card.word}
             </Text>
+            <IconSymbol
+              name={card.rating === 2 ? 'battery.100' : card.rating === 1 ? 'battery.50' : 'battery.0'}
+              color={card.rating === 2 ? '#22c55e' : card.rating === 1 ? '#f59e0b' : '#ef4444'}
+              size={20}
+            />
+          </View>
           <Text className="text-base text-primary-100 opacity-80">Some explain word</Text>
         </View>
         <View className="flex flex-row gap-1">

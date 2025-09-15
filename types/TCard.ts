@@ -4,6 +4,7 @@ export type TCard = {
   translation: string;
   transcription?: string;
   explanation?: string;
+  rating?: number;
   examples: TExample[];
   show?: boolean;
 };

@@ -94,12 +94,12 @@ export class CardModel {
     });
   }
 
-  static async create(word: string, translation: string, transcription: string | null, examples: string[]) {
+  static async create(word: string, translation: string, transcription: string | null, examples: string[], rating: number = 0) {
     const db = getDB();
     await db.withTransactionAsync(async () => {
       const result = await db.runAsync(
-        'INSERT INTO cards (word, translation, transcription) VALUES (?, ?, ?)',
-        [word, translation, transcription]
+        'INSERT INTO cards (word, translation, transcription, rating) VALUES (?, ?, ?, ?)',
+        [word, translation, transcription, rating]
       );
       const cardId = result.lastInsertRowId;
 
@@ -112,10 +112,10 @@ export class CardModel {
     });
   }
 
-  static async update(id: number, word: string, translation: string, transcription: string | null, examples: string[]) {
+  static async update(id: number, word: string, translation: string, transcription: string | null, examples: string[], rating: number = 0) {
     const db = getDB();
     await db.withTransactionAsync(async () => {
-      await db.runAsync('UPDATE cards SET word = ?, translation = ?, transcription = ? WHERE id = ?', [word, translation, transcription, id]);
+      await db.runAsync('UPDATE cards SET word = ?, translation = ?, transcription = ?, rating = ? WHERE id = ?', [word, translation, transcription, rating, id]);
       await db.runAsync('DELETE FROM examples WHERE card_id = ?', [id]);
       for (const sentence of examples) {
         await db.runAsync('INSERT INTO examples (card_id, sentence) VALUES (?, ?)', [id, sentence]);

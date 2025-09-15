@@ -1,6 +1,6 @@
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useState, useCallback, useEffect } from 'react'
-import { View } from 'react-native'
+import { View, Text, Pressable } from 'react-native'
 import { FlatList } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
@@ -12,19 +12,41 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 const CardListScreen = () => {
   const router = useRouter()
   const [cards, setCards] = useState<TCard[]>([])
+  const [visibleCards, setVisibleCards] = useState<TCard[]>([])
   const [search, setSearch] = useState('')
+  const [sortMode, setSortMode] = useState<'none'|'asc'|'desc'>('none')
+  const [hiddenRatings, setHiddenRatings] = useState<Set<number>>(new Set())
   const [confirmVisible, setConfirmVisible] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
 
+  const applyFilters = (list: TCard[]) => {
+    let result = list
+    if (hiddenRatings.size > 0) {
+      result = result.filter(c => !hiddenRatings.has(c.rating ?? 0))
+    }
+    if (sortMode !== 'none') {
+      result = [...result].sort((a, b) => {
+        const ra = a.rating ?? 0
+        const rb = b.rating ?? 0
+        return sortMode === 'asc' ? ra - rb : rb - ra
+      })
+    }
+    setVisibleCards(result)
+  }
+
   const loadCards = async () => {    
-    setCards(await CardModel.all());
+    const list = await CardModel.all();
+    setCards(list);
+    applyFilters(list)
   }
 
   const findCards = async (value: string) => {  
     console.log(value) 
     const result = await CardModel.find(value) 
-
-    if (result !== null) setCards(result)
+    if (result !== null) {
+      setCards(result)
+      applyFilters(result)
+    }
   };
 
   const requestDelete = (id: number) => {
@@ -52,6 +74,23 @@ const CardListScreen = () => {
     findCards(debouncedSearch)
   }, [debouncedSearch])
 
+  useEffect(() => {
+    applyFilters(cards)
+  }, [sortMode, hiddenRatings])
+
+  const toggleRatingHidden = (r: number) => {
+    setHiddenRatings(prev => {
+      const next = new Set(prev)
+      if (next.has(r)) next.delete(r)
+      else next.add(r)
+      return next
+    })
+  }
+
+  const cycleSort = () => {
+    setSortMode(prev => prev === 'none' ? 'asc' : prev === 'asc' ? 'desc' : 'none')
+  }
+
   return (
     <View className='flex-1 bg-primary-900'>
       {/* <TouchableOpacity 
@@ -66,10 +105,29 @@ const CardListScreen = () => {
         onChangeText={setSearch}
       />
 
+      <View className='px-4 mt-2'>
+        <View className='flex-row items-center justify-between'>
+          <Pressable onPress={cycleSort} className='px-3 py-2 rounded-xl border border-primary-300'>
+            <Text className='text-primary-100'>Сортировка: {sortMode === 'none' ? 'выкл' : sortMode === 'asc' ? 'по возр.' : 'по убыв.'}</Text>
+          </Pressable>
+          <View className='flex-row gap-2'>
+            <Pressable onPress={() => toggleRatingHidden(0)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(0) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+              <Text className='text-primary-100'>Скрыть: Не знаю</Text>
+            </Pressable>
+            <Pressable onPress={() => toggleRatingHidden(1)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(1) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+              <Text className='text-primary-100'>Плохо</Text>
+            </Pressable>
+            <Pressable onPress={() => toggleRatingHidden(2)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(2) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+              <Text className='text-primary-100'>Хорошо</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
       <FlatList
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 16 }}
-        data={cards}
+        data={visibleCards}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <Card 

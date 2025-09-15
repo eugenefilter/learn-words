@@ -14,6 +14,7 @@ export const initDatabase = async (): Promise<void> => {
           translation TEXT NOT NULL, 
           explanation TEXT, 
           transcription TEXT,
+          rating INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`
       );
 
@@ -29,6 +30,9 @@ export const initDatabase = async (): Promise<void> => {
       // пытаемся добавить недостающие колонки. Ошибки игнорируем.
       try { await db.execAsync('ALTER TABLE cards ADD COLUMN explanation TEXT;'); } catch {}
       try { await db.execAsync('ALTER TABLE cards ADD COLUMN transcription TEXT;'); } catch {}
+      try { await db.execAsync('ALTER TABLE cards ADD COLUMN rating INTEGER DEFAULT 0;'); } catch {}
+      // Инициализация рейтинга для существующих записей
+      try { await db.execAsync('UPDATE cards SET rating = 0 WHERE rating IS NULL;'); } catch {}
     });
   }
 };

@@ -2,6 +2,7 @@ import { FlatList, StyleSheet, Text, View, Pressable } from 'react-native'
 import React, { FC } from 'react'
 import { TCard } from '@/types/TCard'
 import { Pencil, Trash } from 'lucide-react-native'
+import { IconSymbol } from '@/components/ui/IconSymbol'
 
 interface ICardProps {
   card: TCard,
@@ -12,6 +13,13 @@ interface ICardProps {
 const FrontCard: FC<ICardProps> = ({card, onEdit, onDelete}) => {
   return (
     <View className='bg-primary-800 h-[80%] border border-primary-200 mt-6 mx-5 rounded-xl relative'>
+      <View className='absolute top-3 left-3 z-10'>
+        <IconSymbol
+          name={card.rating === 2 ? 'battery.100' : card.rating === 1 ? 'battery.50' : 'battery.0'}
+          color={card.rating === 2 ? '#22c55e' : card.rating === 1 ? '#f59e0b' : '#ef4444'}
+          size={22}
+        />
+      </View>
       {(onEdit || onDelete) && (
         <View className='absolute top-3 right-3 z-10 flex-row gap-2'>
           {onEdit && (

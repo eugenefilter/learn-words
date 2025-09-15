@@ -24,6 +24,9 @@ const MAPPING = {
   'creditcard.fill': 'credit-card',
   'trash': 'delete',
   'trash.fill': 'delete',
+  'battery.0': 'battery-0-bar',
+  'battery.50': 'battery-4-bar',
+  'battery.100': 'battery-full',
   'plus.circle.fill': 'add-circle'
 } as IconMapping;
 

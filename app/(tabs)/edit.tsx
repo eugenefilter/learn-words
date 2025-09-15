@@ -22,6 +22,7 @@ export default function EditCard() {
   const [examples, setExamples] = useState<string[]>([]);
   const [example, setExample] = useState('');
   const [cardId, setCardId] = useState<number | null>(null);
+  const [rating, setRating] = useState<number>(0);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
@@ -42,6 +43,7 @@ export default function EditCard() {
           setTranslation(card.translation);
           setTranscription(card.transcription || '');
           setExamples(card.examples.map(e => e.sentence));
+          setRating(card.rating ?? 0);
         }
       };
       load();
@@ -64,7 +66,8 @@ export default function EditCard() {
         word,
         translation,
         transcription.trim() || null,
-        examples
+        examples,
+        rating
       );
       setToastType('success');
       setToastMessage('Изменения сохранены');
@@ -100,6 +103,24 @@ export default function EditCard() {
           <Input value={example} onChangeText={setExample} placeholder='Пример предложения (например: Stick to the plan.)' className='my-2' />
 
           <Button title="Добавить пример" onPress={addExample} variant='secondary' className='w-full mt-2' />
+        </View>
+
+        <View className='mt-5 border-t border-primary-200 pt-4'>
+          <Text className='text-primary-100 opacity-90 mb-2'>Уровень знания:</Text>
+          <View className='flex-row gap-3'>
+            <Pressable onPress={() => setRating(0)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===0 ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+              <IconSymbol name="battery.0" color={rating===0 ? '#22c55e' : '#d9ebeb'} size={20} />
+              <Text className='text-primary-100'>Не знаю</Text>
+            </Pressable>
+            <Pressable onPress={() => setRating(1)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===1 ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+              <IconSymbol name="battery.50" color={rating===1 ? '#22c55e' : '#d9ebeb'} size={20} />
+              <Text className='text-primary-100'>Плохо</Text>
+            </Pressable>
+            <Pressable onPress={() => setRating(2)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===2 ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+              <IconSymbol name="battery.100" color={rating===2 ? '#22c55e' : '#d9ebeb'} size={20} />
+              <Text className='text-primary-100'>Хорошо</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View className='flex-1 mt-4 border-t border-primary-200 pt-3'>
