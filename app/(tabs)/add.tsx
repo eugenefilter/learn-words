@@ -1,12 +1,13 @@
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useState, useCallback } from 'react';
-import { FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import Toast from '@/components/ui/Toast';
 
 
@@ -24,6 +25,8 @@ export default function AddCard() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [saving, setSaving] = useState(false);
+  const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
 
   // Ensure a fresh form each time the screen is focused
   useFocusEffect(
@@ -102,7 +105,18 @@ export default function AddCard() {
           <FlatList
             data={examples}
             keyExtractor={(item, i) => i.toString()}
-            renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
+            renderItem={({ item, index }) => (
+              <View className='flex-row items-center justify-between my-1'>
+                <Text className='text-primary-100 opacity-90 flex-1 pr-3'>– {item}</Text>
+                <Pressable
+                  onPress={() => { setRemoveIndex(index); setConfirmRemoveVisible(true); }}
+                  hitSlop={10}
+                  className='p-2 rounded-lg'
+                >
+                  <IconSymbol name="trash.fill" size={20} color={'#d9ebeb'} />
+                </Pressable>
+              </View>
+            )}
           />
         </View>
       </View>
@@ -118,6 +132,22 @@ export default function AddCard() {
         showCancel={false}
         onCancel={() => setValidationVisible(false)}
         onConfirm={() => setValidationVisible(false)}
+      />
+
+      <ConfirmDialog
+        visible={confirmRemoveVisible}
+        title='Удалить пример?'
+        message='Это действие нельзя отменить.'
+        confirmText='Удалить'
+        cancelText='Отмена'
+        onCancel={() => { setConfirmRemoveVisible(false); setRemoveIndex(null); }}
+        onConfirm={() => {
+          if (removeIndex !== null) {
+            setExamples(prev => prev.filter((_, i) => i !== removeIndex));
+          }
+          setConfirmRemoveVisible(false);
+          setRemoveIndex(null);
+        }}
       />
 
       <Toast

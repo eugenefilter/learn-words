@@ -1,12 +1,14 @@
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
-import { FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { CardModel } from '@/models/CardModel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Toast from '@/components/ui/Toast';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function EditCard() {
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function EditCard() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,7 +107,18 @@ export default function EditCard() {
           <FlatList
             data={examples}
             keyExtractor={(item, i) => i.toString()}
-            renderItem={({ item }) => <Text className='text-primary-100 opacity-90 my-1'>– {item}</Text>}
+            renderItem={({ item, index }) => (
+              <View className='flex-row items-center justify-between my-1'>
+                <Text className='text-primary-100 opacity-90 flex-1 pr-3'>– {item}</Text>
+                <Pressable
+                  onPress={() => { setRemoveIndex(index); setConfirmRemoveVisible(true); }}
+                  hitSlop={10}
+                  className='p-2 rounded-lg'
+                >
+                  <IconSymbol name="trash.fill" size={20} color={'#d9ebeb'} />
+                </Pressable>
+              </View>
+            )}
           />
         </View>
       </View>
@@ -116,6 +131,22 @@ export default function EditCard() {
         type={toastType}
         position='top'
         onHide={() => setToastVisible(false)}
+      />
+
+      <ConfirmDialog
+        visible={confirmRemoveVisible}
+        title='Удалить пример?'
+        message='Это действие нельзя отменить.'
+        confirmText='Удалить'
+        cancelText='Отмена'
+        onCancel={() => { setConfirmRemoveVisible(false); setRemoveIndex(null); }}
+        onConfirm={() => {
+          if (removeIndex !== null) {
+            setExamples(prev => prev.filter((_, i) => i !== removeIndex));
+          }
+          setConfirmRemoveVisible(false);
+          setRemoveIndex(null);
+        }}
       />
     </KeyboardAvoidingView>
   );

@@ -22,6 +22,8 @@ const MAPPING = {
   'magnifyingglass': 'search',
   'menucard.fill': 'credit-card',
   'creditcard.fill': 'credit-card',
+  'trash': 'delete',
+  'trash.fill': 'delete',
   'plus.circle.fill': 'add-circle'
 } as IconMapping;
 
