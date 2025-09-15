@@ -21,6 +21,7 @@ const MAPPING = {
   'list.bullet': 'list',
   'magnifyingglass': 'search',
   'menucard.fill': 'credit-card',
+  'creditcard.fill': 'credit-card',
   'plus.circle.fill': 'add-circle'
 } as IconMapping;
 

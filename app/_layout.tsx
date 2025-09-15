@@ -53,7 +53,7 @@ const [isReady, setIsReady] = useState(false);
             name="card"
             options={{
               title: 'Card',
-              tabBarIcon: ({ color }) => <IconSymbol size={28} name="menucard.fill" color='#d9ebeb' />,
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="creditcard.fill" color='#d9ebeb' />,
             }}
           />
           <Tabs.Screen  
@@ -61,6 +61,8 @@ const [isReady, setIsReady] = useState(false);
             options={{
               title: 'Add',
               tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color='#d9ebeb' />,
+              // Reset form state when leaving the tab
+              unmountOnBlur: true,
             }}
           />
         </Tabs>

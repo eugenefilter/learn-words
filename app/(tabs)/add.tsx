@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useCallback } from 'react';
 import { FlatList, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
@@ -23,6 +23,18 @@ export default function AddCard() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [saving, setSaving] = useState(false);
+
+  // Ensure a fresh form each time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      setWord('');
+      setTranslation('');
+      setTranscription('');
+      setExamples([]);
+      setExample('');
+    }, [])
+  );
 
   const addExample = () => {
     if (example.trim()) {
@@ -32,6 +44,7 @@ export default function AddCard() {
   };
 
   const save = async () => {
+    if (saving) return;
     if (!word.trim() || !translation.trim()) {
       setValidationVisible(true);
       return;
@@ -43,17 +56,25 @@ export default function AddCard() {
     }
 
     try {
+      setSaving(true);
       await CardModel.create(
         word.trim(),
         translation.trim(),
         transcription.trim() || null,
         examplesSentence,
       );
+      // Clear form fields after successful save
+      setWord('');
+      setTranslation('');
+      setTranscription('');
+      setExamples([]);
+      setExample('');
       setToastType('success');
       setToastMessage('Карточка сохранена');
       setToastVisible(true);
       setTimeout(() => router.replace('/'), 600);
     } catch (e) {
+      setSaving(false);
       setToastType('error');
       const msg = e instanceof Error ? e.message : String(e);
       setToastMessage('Не удалось сохранить: ' + msg);
@@ -86,7 +107,7 @@ export default function AddCard() {
         </View>
       </View>
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12, zIndex: 20, elevation: 20 }}>
-        <Button title="Сохранить" onPress={() => save()} className='w-full' />
+        <Button title={saving ? 'Сохранение…' : 'Сохранить'} disabled={saving} onPress={() => save()} className='w-full' />
       </View>
 
       <ConfirmDialog
