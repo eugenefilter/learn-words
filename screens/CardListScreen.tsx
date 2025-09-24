@@ -1,4 +1,5 @@
-import { useRouter, useFocusEffect } from 'expo-router'
+import { useRouter } from 'expo-router'
+import { useFocusEffect } from '@react-navigation/native'
 import { useState, useCallback, useEffect } from 'react'
 import { View, Text, Pressable } from 'react-native'
 import { FlatList } from 'react-native'
@@ -8,9 +9,14 @@ import Card from '@/components/card/Card'
 import SearchInput from '@/components/ui/SearchInput'
 import useDebounce from '@/utils/useDebounce'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { useAppContext } from '@/context/AppContext'
+import { LanguageModel } from '@/models/LanguageModel'
+import { DictionaryModel } from '@/models/DictionaryModel'
+import { ScrollView } from 'react-native'
 
 const CardListScreen = () => {
   const router = useRouter()
+  const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext()
   const [cards, setCards] = useState<TCard[]>([])
   const [visibleCards, setVisibleCards] = useState<TCard[]>([])
   const [search, setSearch] = useState('')
@@ -18,6 +24,8 @@ const CardListScreen = () => {
   const [hiddenRatings, setHiddenRatings] = useState<Set<number>>(new Set())
   const [confirmVisible, setConfirmVisible] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
+  const [languages, setLanguages] = useState<{ id: number; name: string }[]>([])
+  const [dicts, setDicts] = useState<{ id: number; name: string }[]>([])
 
   const applyFilters = (list: TCard[]) => {
     let result = list
@@ -34,15 +42,27 @@ const CardListScreen = () => {
     setVisibleCards(result)
   }
 
-  const loadCards = async () => {    
-    const list = await CardModel.all();
+  const loadContext = async () => {
+    const langs = await LanguageModel.all();
+    setLanguages(langs)
+    const lid = currentLanguageId ?? langs[0]?.id
+    if (lid) {
+      if (!currentLanguageId) setCurrentLanguageId(lid)
+      const d = await DictionaryModel.allByLanguage(lid)
+      setDicts(d)
+      if (!currentDictionaryId && d[0]?.id) setCurrentDictionaryId(d[0].id)
+    }
+  }
+
+  const loadCards = async () => {
+    const list = await CardModel.all(20, 0, currentDictionaryId || undefined);
     setCards(list);
     applyFilters(list)
   }
 
-  const findCards = async (value: string) => {  
+  const findCards = async (value: string) => {
     console.log(value) 
-    const result = await CardModel.find(value) 
+    const result = await CardModel.find(value, currentDictionaryId || undefined)
     if (result !== null) {
       setCards(result)
       applyFilters(result)
@@ -64,6 +84,7 @@ const CardListScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      loadContext();
       loadCards();
     }, [])
   )
@@ -77,6 +98,10 @@ const CardListScreen = () => {
   useEffect(() => {
     applyFilters(cards)
   }, [sortMode, hiddenRatings])
+
+  useEffect(() => {
+    loadCards()
+  }, [currentDictionaryId])
 
   const toggleRatingHidden = (r: number) => {
     setHiddenRatings(prev => {
@@ -93,6 +118,26 @@ const CardListScreen = () => {
 
   return (
     <View className='flex-1 bg-primary-900'>
+      <View className='px-4 pt-2'>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className='flex-row gap-2'>
+            {languages.map(l => (
+              <Pressable key={l.id} onPress={() => setCurrentLanguageId(l.id)} className={`px-3 py-2 rounded-xl border ${currentLanguageId===l.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100 text-xs'>{l.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mt-2'>
+          <View className='flex-row gap-2'>
+            {dicts.map(d => (
+              <Pressable key={d.id} onPress={() => setCurrentDictionaryId(d.id)} className={`px-3 py-2 rounded-xl border ${currentDictionaryId===d.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100 text-xs'>{d.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
       {/* <TouchableOpacity 
         className='w-full rounded py-5'
         onPress={() => router.push('/add')}

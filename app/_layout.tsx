@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { initDatabase } from '@/database/database';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import "../global.css"
+import { AppProvider } from '@/context/AppContext';
 
 export default function Layout() {
 const [isReady, setIsReady] = useState(false);
@@ -28,6 +29,7 @@ const [isReady, setIsReady] = useState(false);
   return (
     <SafeAreaProvider>
       <SafeAreaView className='flex-1 bg-primary-900'>
+        <AppProvider>
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -56,7 +58,7 @@ const [isReady, setIsReady] = useState(false);
               tabBarIcon: ({ color }) => <IconSymbol size={28} name="creditcard.fill" color='#d9ebeb' />,
             }}
           />
-          <Tabs.Screen  
+          <Tabs.Screen 
             name="add"
             options={{
               title: 'Add',
@@ -65,7 +67,22 @@ const [isReady, setIsReady] = useState(false);
               unmountOnBlur: true,
             }}
           />
+          <Tabs.Screen 
+            name="library"
+            options={{
+              title: 'Library',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.fill" color='#d9ebeb' />,
+            }}
+          />
+          <Tabs.Screen
+            name="csv"
+            options={{
+              title: 'CSV',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="arrow.up.arrow.down.circle.fill" color='#d9ebeb' />,
+            }}
+          />
         </Tabs>
+        </AppProvider>
       </SafeAreaView>
     </SafeAreaProvider>
   );

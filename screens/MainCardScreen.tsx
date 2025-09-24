@@ -8,10 +8,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { useAppContext } from '@/context/AppContext'
 
 const MainCardScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { currentDictionaryId } = useAppContext();
   const [search, setSearch] = useState('')
   const [card, setCard] = useState<TCard | null>(null)
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -28,7 +30,7 @@ const MainCardScreen = () => {
         }
       } else {
         // Если пришли без id (вкладка открыта напрямую) — подгрузим первую карточку
-        const first = await CardModel.firstCard()
+        const first = await CardModel.firstCard(currentDictionaryId || undefined)
         if (first) {
           setCard(first)
           setSearch((prev) => (prev && prev.length > 0 ? prev : first.word))
@@ -40,18 +42,18 @@ const MainCardScreen = () => {
 
   const searchCardHandler = async (text: string) => {
     setSearch(text)
-    const searchResult = await CardModel.findByWord(text)
+    const searchResult = await CardModel.findByWord(text, currentDictionaryId || undefined)
     setCard(searchResult)
   }
 
   const handleSwipeLeft = async () => {
     if (card !== null) {
-      const prev = await CardModel.prevCard(card.id)
+      const prev = await CardModel.prevCard(card.id, currentDictionaryId || undefined)
       console.log(prev)
       if (prev !== null) {
         setCard(prev)
       } else {
-        const last = await CardModel.lastCard()
+        const last = await CardModel.lastCard(currentDictionaryId || undefined)
         if (last) setCard(last)
       }    
     }
@@ -59,12 +61,12 @@ const MainCardScreen = () => {
 
   const handleSwipeRight = async () => {
     if (card !== null) {
-      const next = await CardModel.nextCard(card.id)
+      const next = await CardModel.nextCard(card.id, currentDictionaryId || undefined)
       console.log(next)
       if (next !== null) {
         setCard(next)
       } else {
-        const first = await CardModel.firstCard()
+        const first = await CardModel.firstCard(currentDictionaryId || undefined)
         if (first) setCard(first)
       }
     }
@@ -85,13 +87,13 @@ const MainCardScreen = () => {
     const currentId = card.id
     await CardModel.delete(currentId)
     setConfirmVisible(false)
-    const next = await CardModel.nextCard(currentId)
+    const next = await CardModel.nextCard(currentId, currentDictionaryId || undefined)
     if (next) {
       setCard(next)
       setSearch(next.word)
       return
     }
-    const prev = await CardModel.prevCard(currentId)
+    const prev = await CardModel.prevCard(currentId, currentDictionaryId || undefined)
     if (prev) {
       setCard(prev)
       setSearch(prev.word)

@@ -5,6 +5,7 @@ export type TCard = {
   transcription?: string;
   explanation?: string;
   rating?: number;
+  dictionaryId?: number; // optional for backward-compat mapping
   examples: TExample[];
   show?: boolean;
 };

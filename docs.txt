@@ -82,3 +82,66 @@
   - Цвета/палитра: `tailwind.config.js` (`primary`, `accent`). Проекты используют NativeWind; классы tailwind в `className`.
   - `CardListScreen.tsx`: список карточек, навигация на карточку и редактирование по id.
   - Старайтесь держать размеры зоны касания ≥ 44pt и контраст из палитры `primary`.
+
+Мультиязычность и папки-словари (NEW)
+
+- Архитектура данных:
+  - Таблица `languages(id PK, name TEXT UNIQUE NOT NULL, code TEXT, icon TEXT, created_at)` — языки обучения.
+  - Таблица `dictionaries(id PK, language_id INTEGER NOT NULL FK→languages(id) ON DELETE CASCADE, name TEXT NOT NULL, color TEXT, sort_order INTEGER DEFAULT 0, created_at)` — папки-словари внутри языка.
+  - Таблица `cards` дополнена колонкой `dictionary_id INTEGER FK→dictionaries(id)`; все существующие записи бэкофиллятся в словарь `Default` языка `English`.
+  - Индексы: `idx_cards_dictionary (cards.dictionary_id)`, `idx_cards_word (cards.dictionary_id, word COLLATE NOCASE)`, `idx_examples_card_id (examples.card_id)`.
+
+- Миграции/инициализация:
+  - При `initDatabase()` создаются таблицы `languages` и `dictionaries` (если нет).
+  - Гарантируется наличие языка `English (code: en)` и словаря `Default` для него.
+  - Для карточек без `dictionary_id` — проставляется `Default`.
+
+- Типы и модели:
+  - Типы: `types/TLanguage.ts`, `types/TDictionary.ts`; `types/TCard.ts` расширен полем `dictionaryId?`.
+  - `LanguageModel`: `all`, `findById`, `create`, `update`, `delete`, `firstOrCreateDefault`.
+  - `DictionaryModel`: `allByLanguage(languageId)`, `findById`, `create`, `update`, `delete`, `firstOrCreateDefaultForLanguage(languageId)`; в `allByLanguage` дополнительно возвращается `cardsCount`.
+  - `CardModel` обновлён: методы принимают опциональный `dictionaryId` для фильтрации внутри словаря; `create` требует `dictionaryId`.
+    - `all(limit, offset, dictionaryId?)`
+    - `find(text, dictionaryId?)`
+    - `findByWord(text, dictionaryId?)`
+    - `firstCard(dictionaryId?)`, `lastCard(dictionaryId?)`, `nextCard(currentID, dictionaryId?)`, `prevCard(currentID, dictionaryId?)`
+    - `create(word, translation, transcription|null, examples[], rating=0, dictionaryId)`
+
+- Контекст приложения:
+  - `context/AppContext.tsx` хранит `currentLanguageId` и `currentDictionaryId` и выставляет их по умолчанию при старте (English → Default).
+  - Оборачивает приложение в `app/_layout.tsx` через `<AppProvider>`.
+
+- Текущее поведение по умолчанию:
+  - Все новые карточки (экраны Add) сохраняются в текущий словарь из контекста. Если не установлен — показывается тост об ошибке.
+  - По умолчанию после первого запуска текущими становятся `English` и словарь `Default`.
+
+- Рекомендации по использованию в экранах (паттерны):
+  - Получайте `currentDictionaryId` из `useAppContext()` и всегда передавайте его в методы `CardModel` для выборок/поиска/навигации по карточкам.
+    - Пример: `CardModel.all(20, 0, currentDictionaryId)`, `CardModel.find(search, currentDictionaryId)`, `CardModel.firstCard(currentDictionaryId)`.
+  - На Add/Edit:
+    - Add: сохраняйте с `CardModel.create(..., dictionaryId: currentDictionaryId)`.
+    - Edit: опционально добавьте возможность перемещения карточки в другой словарь (изменение `dictionary_id`).
+  - В списке и на экране карточки рекомендуется фильтровать карточки по активному словарю (UI для выбора описан ниже).
+
+- UI/UX (план):
+  - Быстрый выбор: строка чипов для Языков и Словарей над поиском в списке. Активный чип меняет контекст; рядом кнопка «+» для создания.
+  - Экран «Библиотека» (новая вкладка):
+    - Языки: список с иконкой/кодом, счётчиком словарей, действия: Переименовать, Удалить (ConfirmDialog), Сделать по умолчанию.
+    - Словари выбранного языка: список с цветом, cardsCount, drag-sorting, действия: Переименовать, Цвет, Удалить, Экспорт.
+  - Выбор словаря при создании: модалка-пикер словаря в Add/Edit с CTA «Создать новый словарь».
+
+- CRUD-потоки и подтверждения:
+  - Удаление языка — каскад на словари/карточки; всегда подтверждать через `ConfirmDialog`.
+  - Удаление словаря — предлагать вариант переноса карточек в другой словарь того же языка или удаление вместе со словарём.
+  - Экспорт/импорт словаря (CSV) — формат: `word,translation,transcription,rating,examples` (примеры через `;`). Значения экранируются кавычками. Экспорт/импорт доступен во вкладке «Библиотека».
+
+- Доступность и стили (важно соблюдать):
+  - Сохранять тёмную палитру; панели/модалки — `primary-800/300` и акценты `accent-600`/`-700`.
+  - Подтверждения и уведомления: только `components/ui/ConfirmDialog` и `components/ui/Toast` (без системного `Alert`).
+  - Фиксация CTA-кнопок: как на Add/Edit (`bottom = tabBarHeight + insets.bottom + 12`), контент — с дополнительным `paddingBottom`.
+  - Клавиатура: `KeyboardAvoidingView` на iOS (`behavior='padding'`).
+
+- Следующие шаги (для реализации UI):
+  - Добавить вкладку/экран «Библиотека» с CRUD языков/словарей.
+  - В `CardListScreen` и `MainCardScreen` подключить фильтрацию по `currentDictionaryId` и добавить чипы выбора.
+  - В Edit добавить перенос карточки между словарями.

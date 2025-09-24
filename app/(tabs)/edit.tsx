@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useState, useEffect, useCallback } from 'react';
 import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import Button from '@/components/ui/Button';
@@ -9,6 +10,9 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useAppContext } from '@/context/AppContext';
+import DictionaryPicker from '@/components/library/DictionaryPicker';
+import { DictionaryModel } from '@/models/DictionaryModel';
 
 export default function EditCard() {
   const router = useRouter();
@@ -28,6 +32,10 @@ export default function EditCard() {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  const { currentDictionaryId } = useAppContext();
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [cardDictId, setCardDictId] = useState<number | null>(null);
+  const [cardDictName, setCardDictName] = useState<string>('');
 
   useFocusEffect(
     useCallback(() => {
@@ -44,6 +52,11 @@ export default function EditCard() {
           setTranscription(card.transcription || '');
           setExamples(card.examples.map(e => e.sentence));
           setRating(card.rating ?? 0);
+          setCardDictId(card.dictionaryId ?? null);
+          if (card.dictionaryId) {
+            const d = await DictionaryModel.findById(card.dictionaryId);
+            if (active) setCardDictName(d?.name || '');
+          }
         }
       };
       load();
@@ -94,6 +107,10 @@ export default function EditCard() {
     >
       <View className='flex-1 px-5 pt-6 pb-24' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 96 }}>
         <View>
+          <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
+            <Text className='text-primary-100'>Словарь: {cardDictName || (cardDictId ? `#${cardDictId}` : 'не выбран')}</Text>
+            <Text className='text-primary-100 opacity-80 text-xs mt-1'>Нажмите, чтобы изменить словарь карточки</Text>
+          </Pressable>
           <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
           <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
@@ -167,6 +184,28 @@ export default function EditCard() {
           }
           setConfirmRemoveVisible(false);
           setRemoveIndex(null);
+        }}
+      />
+
+      <DictionaryPicker
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelect={async (id) => {
+          try {
+            if (cardId && id) {
+              await CardModel.moveToDictionary(cardId, id)
+              setToastType('success');
+              setToastMessage('Карточка перемещена в выбранный словарь');
+              setToastVisible(true);
+              setCardDictId(id)
+              const d = await DictionaryModel.findById(id);
+              setCardDictName(d?.name || '')
+            }
+          } catch (e) {
+            setToastType('error');
+            setToastMessage('Не удалось переместить карточку');
+            setToastVisible(true);
+          }
         }}
       />
     </KeyboardAvoidingView>
