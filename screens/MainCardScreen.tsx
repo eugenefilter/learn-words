@@ -105,6 +105,12 @@ const MainCardScreen = () => {
 
   return (
     <View className='bg-primary-900 flex-1 relative'>
+      <View className='px-4 pt-3 flex-row items-center justify-between'>
+        <Text className='text-primary-100 text-lg'>Карточка</Text>
+        <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
+          <Text className='text-primary-100 text-xs'>CSV</Text>
+        </Pressable>
+      </View>
       <SearchInput 
         value={search}
         placeholder="Search word ..."

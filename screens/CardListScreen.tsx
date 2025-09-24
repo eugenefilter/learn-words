@@ -119,6 +119,12 @@ const CardListScreen = () => {
   return (
     <View className='flex-1 bg-primary-900'>
       <View className='px-4 pt-2'>
+        <View className='flex-row items-center justify-between mb-2'>
+          <Text className='text-primary-100 text-lg'>Список</Text>
+          <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
+            <Text className='text-primary-100 text-xs'>CSV</Text>
+          </Pressable>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className='flex-row gap-2'>
             {languages.map(l => (

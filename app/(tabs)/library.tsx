@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, Modal, TextInput, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 import { LanguageModel } from '@/models/LanguageModel';
 import { DictionaryModel } from '@/models/DictionaryModel';
@@ -14,6 +15,7 @@ type Dict = { id: number; name: string; cardsCount?: number };
 
 const LibraryScreen = () => {
   const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext();
+  const router = useRouter();
   const [languages, setLanguages] = useState<Lang[]>([]);
   const [dicts, setDicts] = useState<Dict[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +193,12 @@ const LibraryScreen = () => {
 
   return (
     <View className='flex-1 bg-primary-900 px-4 pt-6'>
-      <Text className='text-primary-100 text-2xl mb-3'>Библиотека</Text>
+      <View className='flex-row items-center justify-between mb-3'>
+        <Text className='text-primary-100 text-2xl'>Библиотека</Text>
+        <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
+          <Text className='text-primary-100 text-xs'>Импорт/Экспорт CSV</Text>
+        </Pressable>
+      </View>
 
       <View className='mb-4'>
         <View className='flex-row justify-between items-center mb-2'>

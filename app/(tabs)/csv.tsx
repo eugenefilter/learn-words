@@ -22,6 +22,7 @@ const CsvScreen: React.FC = () => {
   // Export state
   const [exportCsv, setExportCsv] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Import state
   const [importText, setImportText] = useState('');
@@ -80,6 +81,65 @@ const CsvScreen: React.FC = () => {
     }
   };
 
+  const exportToFile = async () => {
+    try {
+      if (!exportCsv.trim()) {
+        await buildCsv();
+        if (!exportCsv.trim()) return;
+      }
+      setSaving(true);
+      const FS = await import('expo-file-system');
+      const Sharing = await import('expo-sharing');
+      const fileName = `vocab_export_${Date.now()}.csv`;
+      const uri = (FS.FileSystem as any)?.cacheDirectory
+        ? `${FS.FileSystem.cacheDirectory}${fileName}`
+        : `${(FS as any).cacheDirectory || ''}${fileName}`;
+      await FS.writeAsStringAsync(uri, exportCsv, { encoding: FS.EncodingType.UTF8 });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export CSV',
+          UTI: 'public.comma-separated-values-text',
+        } as any);
+      } else {
+        setToastType('info');
+        setToastMessage(`CSV сохранён: ${uri}`);
+        setToastVisible(true);
+      }
+    } catch (e) {
+      setToastType('error');
+      setToastMessage('Не удалось сохранить/поделиться CSV. Установите expo-file-system и expo-sharing');
+      setToastVisible(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const pickCsvFile = async () => {
+    try {
+      // Lazy-load to avoid bundling issues if not installed
+      const Doc = await import('expo-document-picker');
+      const res = await Doc.getDocumentAsync({ type: 'text/*', copyToCacheDirectory: true });
+      // For older SDKs the result shape may differ
+      // @ts-ignore
+      if (res.canceled) return;
+      // @ts-ignore
+      const asset = (res.assets && res.assets[0]) || res;
+      const uri = asset?.uri as string | undefined;
+      if (!uri) return;
+      const FS = await import('expo-file-system');
+      const content = await FS.readAsStringAsync(uri, { encoding: FS.EncodingType.UTF8 });
+      setImportText(content);
+      await analyzeImport();
+      setToastType('success'); setToastMessage('CSV файл загружен'); setToastVisible(true);
+    } catch (e) {
+      setToastType('error');
+      setToastMessage('Не удалось открыть файл. Установите expo-document-picker и expo-file-system');
+      setToastVisible(true);
+    }
+  }
+
   const analyzeImport = async () => {
     if (!currentDictionaryId) { setToastType('error'); setToastMessage('Выберите словарь для импорта'); setToastVisible(true); return; }
     const text = importText.trim();
@@ -134,7 +194,7 @@ const CsvScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ paddingBottom: bottomInset + 84 }} className='flex-1 px-5 pt-6'>
+      <ScrollView contentContainerStyle={{ paddingBottom: bottomInset }} className='flex-1 px-5 pt-6'>
         <Pressable onPress={() => setPickerVisible(true)} className='mb-4 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
           <Text className='text-primary-100'>Выбрать словарь</Text>
           <Text className='text-primary-100 opacity-80 text-xs mt-1'>Текущий используется для экспорта/импорта</Text>
@@ -142,22 +202,15 @@ const CsvScreen: React.FC = () => {
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
           <Text className='text-primary-100 text-lg mb-2'>Экспорт CSV</Text>
-          <Button title={exporting ? 'Формирование…' : 'Сформировать CSV'} disabled={exporting} onPress={buildCsv} />
-          <Text className='text-primary-100 opacity-80 mt-3 mb-1 text-xs'>Формат: word, translation, transcription, rating, examples(; разделитель)</Text>
-          <TextInput
-            className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200'
-            style={{ minHeight: 120, textAlignVertical: 'top' }}
-            multiline
-            value={exportCsv}
-            onChangeText={setExportCsv}
-            placeholder='Здесь появится CSV'
-            placeholderTextColor={'#9fbfbf'}
-            editable={false}
-          />
+          <Button title={saving ? 'Сохранение…' : 'Экспорт в файл'} disabled={saving} onPress={exportToFile} />
+          <Text className='text-primary-100 opacity-80 mt-3 text-xs'>Формат: word, translation, transcription, rating, examples(; разделитель)</Text>
         </View>
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
           <Text className='text-primary-100 text-lg mb-2'>Импорт CSV</Text>
+          <View className='mb-2'>
+            <Button title='Выбрать файл CSV' onPress={pickCsvFile} />
+          </View>
           <View className='flex-row gap-2 mb-2'>
             <Pressable onPress={() => setDedupeMode('word')} className={`px-3 py-2 rounded-xl border ${dedupeMode==='word' ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
               <Text className='text-primary-100 text-xs'>Дедуп: слово</Text>
@@ -185,9 +238,7 @@ const CsvScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: bottomInset, zIndex: 20, elevation: 20 }}>
-        <Button title='Выбрать словарь' variant='secondary' onPress={() => setPickerVisible(true)} />
-      </View>
+      {/* Removed bottom duplicated dictionary picker button per request */}
 
       <DictionaryPicker visible={pickerVisible} onClose={() => setPickerVisible(false)} onSelect={() => setPickerVisible(false)} />
 
@@ -207,4 +258,3 @@ const CsvScreen: React.FC = () => {
 };
 
 export default CsvScreen;
-
