@@ -192,6 +192,37 @@ const CsvScreen: React.FC = () => {
     }
   };
 
+  const downloadTemplate = async () => {
+    try {
+      // Минимальный шаблон с заголовком и примером строки
+      const template = [
+        'word,translation,transcription,rating,examples',
+        '"stick","придерживаться","/stɪk/","1","Stick to the plan.; We stick together."',
+      ].join('\n');
+      const FS = await import('expo-file-system');
+      const Sharing = await import('expo-sharing');
+      const fileName = 'vocab_template.csv';
+      const uri = (FS as any).cacheDirectory ? `${(FS as any).cacheDirectory}${fileName}` : fileName;
+      await FS.writeAsStringAsync(uri, template, { encoding: FS.EncodingType.UTF8 });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'CSV Template',
+          UTI: 'public.comma-separated-values-text',
+        } as any);
+      } else {
+        setToastType('info');
+        setToastMessage(`Шаблон сохранён: ${uri}`);
+        setToastVisible(true);
+      }
+    } catch (e) {
+      setToastType('error');
+      setToastMessage('Не удалось сохранить шаблон. Установите expo-file-system и expo-sharing');
+      setToastVisible(true);
+    }
+  };
+
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomInset }} className='flex-1 px-5 pt-6'>
@@ -208,8 +239,13 @@ const CsvScreen: React.FC = () => {
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
           <Text className='text-primary-100 text-lg mb-2'>Импорт CSV</Text>
-          <View className='mb-2'>
-            <Button title='Выбрать файл CSV' onPress={pickCsvFile} />
+          <View className='flex-row gap-3 mb-2'>
+            <View className='flex-1'>
+              <Button title='Скачать шаблон CSV' onPress={downloadTemplate} />
+            </View>
+            <View className='flex-1'>
+              <Button title='Выбрать файл CSV' onPress={pickCsvFile} />
+            </View>
           </View>
           <View className='flex-row gap-2 mb-2'>
             <Pressable onPress={() => setDedupeMode('word')} className={`px-3 py-2 rounded-xl border ${dedupeMode==='word' ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
