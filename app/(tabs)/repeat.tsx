@@ -9,6 +9,7 @@ import { CardModel } from '@/models/CardModel';
 import Button from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { FLOATING_PANEL_GAP } from '@/constants/layout';
+import { RATING_ICON, RATING_COLOR } from '@/constants/rating';
 import * as Haptics from 'expo-haptics';
 
 type RepeatCard = {
@@ -139,8 +140,8 @@ export default function RepeatScreen() {
           >
             <View className='absolute top-4 left-4'>
               <IconSymbol
-                name={card.rating === 2 ? 'battery.100' : card.rating === 1 ? 'battery.50' : 'battery.0'}
-                color={card.rating === 2 ? '#22c55e' : card.rating === 1 ? '#f59e0b' : '#ef4444'}
+                name={RATING_ICON[card.rating] as any}
+                color={RATING_COLOR[card.rating]}
                 size={20}
               />
             </View>

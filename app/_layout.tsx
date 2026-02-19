@@ -5,6 +5,7 @@ import { initDatabase } from '@/database/database';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import '../global.css';
 import { AppProvider } from '@/context/AppContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -26,12 +27,14 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <SafeAreaView className='flex-1 bg-primary-900'>
-        <AppProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="edit" />
-          </Stack>
-        </AppProvider>
+        <ErrorBoundary>
+          <AppProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="edit" />
+            </Stack>
+          </AppProvider>
+        </ErrorBoundary>
       </SafeAreaView>
     </SafeAreaProvider>
   );

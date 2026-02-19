@@ -184,6 +184,10 @@ const CardListScreen = () => {
             onPress={() => router.push({ pathname: '/card', params: { id: item.id.toString() } })}
           />
         )}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={15}
         ListEmptyComponent={
           <EmptyState
             icon='tray'

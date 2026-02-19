@@ -1,8 +1,9 @@
-import { View, Text, Pressable, ScrollView } from 'react-native'
-import React, {FC} from 'react'
+import { View, Text, Pressable } from 'react-native'
+import React, { FC, memo } from 'react'
 import { Pencil, Trash } from 'lucide-react-native'
 import { IconSymbol } from '@/components/ui/IconSymbol'
 import { TCard } from '@/types/TCard'
+import { RATING_ICON, RATING_COLOR } from '@/constants/rating'
 
 interface ICardProps {
   card: TCard,
@@ -11,13 +12,8 @@ interface ICardProps {
   onPress?: () => void
 }
 
-const renderItems = (item: string, key: number) => {
-  return <Text key={key} className='text-primary-900 text-xl font-bold border-b border-primary-300 py-3'>
-    {item}
-  </Text>
-}
-
-const Card: FC<ICardProps> = ({card, onEdit, onDelete, onPress}) => {
+const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
+  const rating = card.rating ?? 0
   return (
     <Pressable onPress={onPress} className='w-[92%] mx-auto my-4 rounded-xl p-6 flex flex-col bg-primary-800 border border-primary-200'>
       <View className="flex flex-row justify-between items-start mb-4">
@@ -27,36 +23,26 @@ const Card: FC<ICardProps> = ({card, onEdit, onDelete, onPress}) => {
               {card.word}
             </Text>
             <IconSymbol
-              name={card.rating === 2 ? 'battery.100' : card.rating === 1 ? 'battery.50' : 'battery.0'}
-              color={card.rating === 2 ? '#22c55e' : card.rating === 1 ? '#f59e0b' : '#ef4444'}
+              name={RATING_ICON[rating] as any}
+              color={RATING_COLOR[rating]}
               size={20}
             />
           </View>
-          <Text className="text-base text-primary-100 opacity-80">Some explain word</Text>
+          {card.explanation ? (
+            <Text className="text-base text-primary-100 opacity-80">{card.explanation}</Text>
+          ) : null}
         </View>
         <View className="flex flex-row gap-1">
           <Pressable onPress={() => onEdit(card.id)} className="w-10 h-10 items-center justify-center">
             <Pencil color="#d9ebeb" />
           </Pressable>
-          
           <Pressable onPress={() => onDelete(card.id)} className="w-10 h-10 items-center justify-center">
             <Trash color="#ef4444" />
           </Pressable>
-      
         </View>
       </View>
-       
-      {/* <View className='mt-5 border-t'>
-        <Text className='text-primary-100'>List with example sentenses</Text>
-        <ScrollView>
-          {
-            card.examples.map(item => renderItems(item.sentence, item.id))
-          }
-        </ScrollView>
-      </View> */}
     </Pressable>
   )
 }
- 
 
-export default Card
+export default memo(Card)
