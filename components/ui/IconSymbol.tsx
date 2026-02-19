@@ -29,6 +29,10 @@ const MAPPING = {
   'battery.100': 'battery-full',
   'plus.circle.fill': 'add-circle',
   'arrow.clockwise': 'replay',
+  'folder.fill': 'folder',
+  'arrow.up.arrow.down.circle.fill': 'swap-vert',
+  'tray': 'inbox',
+  'rectangle.on.rectangle': 'content-copy',
 } as IconMapping;
 
 /**

@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { CardModel } from '@/models/CardModel';
@@ -185,7 +185,11 @@ export default function QuizScreen() {
       )}
 
       {state === 'ready' && currentCard && (
-        <View className='flex-1'>
+        <ScrollView
+          className='flex-1'
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 8 }}
+        >
           <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-4'>
             <Text className='text-primary-100 opacity-80 mb-2'>Вопрос {progressText}</Text>
             <Text className='text-primary-100 text-3xl font-semibold'>{currentCard.word}</Text>
@@ -207,8 +211,7 @@ export default function QuizScreen() {
               );
             })}
           </View>
-
-        </View>
+        </ScrollView>
       )}
 
       {state === 'completed' && (
