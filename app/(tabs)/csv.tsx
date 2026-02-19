@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, Pressable, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useAppContext } from '@/context/AppContext';
@@ -11,17 +11,31 @@ import { CardModel } from '@/models/CardModel';
 
 type DedupeMode = 'word' | 'word+translation';
 
+type ParsedImportRow = {
+  word: string;
+  translation: string;
+  transcription: string | null;
+  rating: number;
+  examples: string[];
+};
+
+type ParseResult = {
+  rows: ParsedImportRow[];
+  previewRows: ParsedImportRow[];
+  format: 'CSV' | 'TSV';
+  hasHeader: boolean;
+};
+
 const CsvScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
-  const { currentDictionaryId } = useAppContext();
+  const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
 
   // Picker state
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // Export state
   const [exportCsv, setExportCsv] = useState('');
-  const [exporting, setExporting] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Import state
@@ -29,6 +43,9 @@ const CsvScreen: React.FC = () => {
   const [dedupeMode, setDedupeMode] = useState<DedupeMode>('word');
   const [importStats, setImportStats] = useState<{ total: number; toAdd: number; duplicates: number } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [previewRows, setPreviewRows] = useState<ParsedImportRow[]>([]);
+  const [detectedFormat, setDetectedFormat] = useState<'CSV' | 'TSV' | null>(null);
+  const [detectedHeader, setDetectedHeader] = useState<boolean>(false);
 
   // UI feedback
   const [toastVisible, setToastVisible] = useState(false);
@@ -38,24 +55,104 @@ const CsvScreen: React.FC = () => {
 
   const bottomInset = (tabBarHeight || 0) + insets.bottom + 12;
 
-  const parseCsvLine = (line: string): string[] => {
+  const parseDelimitedLine = (line: string, delimiter: string): string[] => {
     const result: string[] = [];
     let cur = '';
     let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
+
+    for (let i = 0; i < line.length; i += 1) {
       const ch = line[i];
       if (inQuotes) {
         if (ch === '"') {
-          if (line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = false; }
-        } else { cur += ch; }
+          if (line[i + 1] === '"') {
+            cur += '"';
+            i += 1;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          cur += ch;
+        }
+      } else if (ch === delimiter) {
+        result.push(cur.trim());
+        cur = '';
+      } else if (ch === '"') {
+        inQuotes = true;
       } else {
-        if (ch === ',') { result.push(cur); cur = ''; }
-        else if (ch === '"') { inQuotes = true; }
-        else { cur += ch; }
+        cur += ch;
       }
     }
-    result.push(cur);
-    return result.map(s => s.trim());
+
+    result.push(cur.trim());
+    return result;
+  };
+
+  const normalizeHeader = (value: string): string => value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/_/g, '');
+
+  const parseImportRows = (rawText: string): ParseResult => {
+    const lines = rawText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) {
+      return { rows: [], previewRows: [], format: 'CSV', hasHeader: false };
+    }
+
+    const delimiter = lines[0].includes('\t') ? '\t' : ',';
+    const format: 'CSV' | 'TSV' = delimiter === '\t' ? 'TSV' : 'CSV';
+
+    const split = (line: string) => parseDelimitedLine(line, delimiter);
+    const firstCells = split(lines[0]);
+    const firstHeaders = firstCells.map(normalizeHeader);
+
+    const hasWordHeader = firstHeaders.includes('word');
+    const hasTranslationHeader = firstHeaders.some((h) => ['translation', 'translate', 'meaning', 'перевод'].includes(h));
+    const hasHeader = hasWordHeader && hasTranslationHeader;
+
+    const indexByCandidates = (headers: string[], candidates: string[], fallback: number): number => {
+      const found = headers.findIndex((h) => candidates.includes(h));
+      return found >= 0 ? found : fallback;
+    };
+
+    const wordIndex = hasHeader ? indexByCandidates(firstHeaders, ['word', 'слово'], 0) : 0;
+    const translationIndex = hasHeader ? indexByCandidates(firstHeaders, ['translation', 'translate', 'meaning', 'перевод'], 1) : 1;
+    const transcriptionIndex = hasHeader ? indexByCandidates(firstHeaders, ['transcription', 'phonetic', 'pronunciation', 'транскрипция'], 2) : 2;
+    const examplesIndex = hasHeader ? indexByCandidates(firstHeaders, ['examples', 'example', 'примеры', 'пример'], 4) : 4;
+    const ratingIndex = hasHeader ? indexByCandidates(firstHeaders, ['rating', 'rank', 'уровень', 'рейтинг'], 3) : 3;
+
+    const startIndex = hasHeader ? 1 : 0;
+    const rows: ParsedImportRow[] = [];
+
+    for (let i = startIndex; i < lines.length; i += 1) {
+      const cells = split(lines[i]);
+      const word = (cells[wordIndex] || '').trim();
+      const translation = (cells[translationIndex] || '').trim();
+
+      if (!word || !translation) continue;
+
+      const transcription = (cells[transcriptionIndex] || '').trim() || null;
+      const rawExamples = (cells[examplesIndex] || '').trim();
+      const examples = rawExamples
+        ? rawExamples.split(/\s*[;|]\s*/).map((v) => v.trim()).filter(Boolean)
+        : [];
+
+      const rawRating = Number.parseInt((cells[ratingIndex] || '0').trim(), 10);
+      const rating = CardModel.clampRating(Number.isNaN(rawRating) ? 0 : rawRating);
+
+      rows.push({ word, translation, transcription, rating, examples });
+    }
+
+    return {
+      rows,
+      previewRows: rows.slice(0, 8),
+      format,
+      hasHeader,
+    };
   };
 
   const buildCsv = async () => {
@@ -64,7 +161,6 @@ const CsvScreen: React.FC = () => {
       return;
     }
     try {
-      setExporting(true);
       const cards = await CardModel.allWithExamplesByDictionary(currentDictionaryId);
       const header = 'word,translation,transcription,rating,examples';
       const rows = cards.map(c => {
@@ -72,121 +168,134 @@ const CsvScreen: React.FC = () => {
         const cells = [c.word, c.translation, c.transcription ?? '', String(c.rating ?? 0), ex];
         return cells.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',');
       });
-      setExportCsv([header, ...rows].join('\n'));
-      setToastType('success'); setToastMessage('CSV сформирован'); setToastVisible(true);
+      const csv = [header, ...rows].join('\n');
+      setExportCsv(csv);
+      return csv;
     } catch (e) {
       setToastType('error'); setToastMessage('Ошибка экспорта'); setToastVisible(true);
-    } finally {
-      setExporting(false);
+      return '';
     }
   };
 
   const exportToFile = async () => {
     try {
-      if (!exportCsv.trim()) {
-        await buildCsv();
-        if (!exportCsv.trim()) return;
-      }
+      const csv = exportCsv.trim() ? exportCsv : (await buildCsv()) || '';
+      if (!csv) return;
       setSaving(true);
-      const FS = await import('expo-file-system');
-      const Sharing = await import('expo-sharing');
-      const fileName = `vocab_export_${Date.now()}.csv`;
-      const uri = (FS.FileSystem as any)?.cacheDirectory
-        ? `${FS.FileSystem.cacheDirectory}${fileName}`
-        : `${(FS as any).cacheDirectory || ''}${fileName}`;
-      await FS.writeAsStringAsync(uri, exportCsv, { encoding: FS.EncodingType.UTF8 });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'text/csv',
-          dialogTitle: 'Export CSV',
-          UTI: 'public.comma-separated-values-text',
-        } as any);
-      } else {
-        setToastType('info');
-        setToastMessage(`CSV сохранён: ${uri}`);
-        setToastVisible(true);
-      }
+      await Share.share({
+        title: 'Vocab Export CSV',
+        message: csv,
+      });
+      setToastType('success');
+      setToastMessage('CSV готов. Выберите, куда отправить текст.');
+      setToastVisible(true);
     } catch (e) {
       setToastType('error');
-      setToastMessage('Не удалось сохранить/поделиться CSV. Установите expo-file-system и expo-sharing');
+      setToastMessage('Не удалось поделиться CSV');
       setToastVisible(true);
     } finally {
       setSaving(false);
     }
   };
 
-  const pickCsvFile = async () => {
-    try {
-      // Lazy-load to avoid bundling issues if not installed
-      const Doc = await import('expo-document-picker');
-      const res = await Doc.getDocumentAsync({ type: 'text/*', copyToCacheDirectory: true });
-      // For older SDKs the result shape may differ
-      // @ts-ignore
-      if (res.canceled) return;
-      // @ts-ignore
-      const asset = (res.assets && res.assets[0]) || res;
-      const uri = asset?.uri as string | undefined;
-      if (!uri) return;
-      const FS = await import('expo-file-system');
-      const content = await FS.readAsStringAsync(uri, { encoding: FS.EncodingType.UTF8 });
-      setImportText(content);
-      await analyzeImport();
-      setToastType('success'); setToastMessage('CSV файл загружен'); setToastVisible(true);
-    } catch (e) {
+  const analyzeImport = async (sourceText?: string) => {
+    if (!currentDictionaryId) {
       setToastType('error');
-      setToastMessage('Не удалось открыть файл. Установите expo-document-picker и expo-file-system');
+      setToastMessage('Выберите словарь для импорта');
       setToastVisible(true);
+      return;
     }
-  }
 
-  const analyzeImport = async () => {
-    if (!currentDictionaryId) { setToastType('error'); setToastMessage('Выберите словарь для импорта'); setToastVisible(true); return; }
-    const text = importText.trim();
-    if (!text) { setImportStats(null); return; }
-    const lines = text.split(/\r?\n/).filter(Boolean);
-    if (lines.length <= 1) { setImportStats({ total: 0, toAdd: 0, duplicates: 0 }); return; }
-    const [, ...data] = lines; // skip header
-    let total = 0, toAdd = 0, duplicates = 0;
-    for (const line of data) {
-      const [word, translation] = parseCsvLine(line);
-      if (!word || !translation) continue;
-      total++;
-      const exists = dedupeMode === 'word'
-        ? await CardModel.existsInDictionary(word, currentDictionaryId)
-        : await CardModel.existsByWordAndTranslation(word, translation, currentDictionaryId);
-      if (exists) duplicates++; else toAdd++;
+    const text = (sourceText ?? importText).trim();
+    if (!text) {
+      setImportStats(null);
+      setPreviewRows([]);
+      setDetectedFormat(null);
+      setDetectedHeader(false);
+      return;
     }
+
+    const parsed = parseImportRows(text);
+    setPreviewRows(parsed.previewRows);
+    setDetectedFormat(parsed.format);
+    setDetectedHeader(parsed.hasHeader);
+
+    if (parsed.rows.length === 0) {
+      setImportStats({ total: 0, toAdd: 0, duplicates: 0 });
+      return;
+    }
+
+    let total = 0;
+    let toAdd = 0;
+    let duplicates = 0;
+
+    for (const row of parsed.rows) {
+      total += 1;
+      const exists = dedupeMode === 'word'
+        ? await CardModel.existsInDictionary(row.word, currentDictionaryId)
+        : await CardModel.existsByWordAndTranslation(row.word, row.translation, currentDictionaryId);
+      if (exists) duplicates += 1;
+      else toAdd += 1;
+    }
+
     setImportStats({ total, toAdd, duplicates });
   };
 
   const performImport = async () => {
-    if (!currentDictionaryId) { setToastType('error'); setToastMessage('Выберите словарь для импорта'); setToastVisible(true); return; }
+    if (!currentDictionaryId) {
+      setToastType('error');
+      setToastMessage('Выберите словарь для импорта');
+      setToastVisible(true);
+      return;
+    }
+
     const text = importText.trim();
     if (!text) return;
+
     try {
       setImporting(true);
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      if (lines.length <= 1) return;
-      const [, ...data] = lines;
-      let added = 0, skipped = 0;
-      for (const line of data) {
-        const cells = parseCsvLine(line);
-        const [word, translation, transcription, ratingStr, examplesStr] = cells;
-        if (!word || !translation) { continue; }
-        const exists = dedupeMode === 'word'
-          ? await CardModel.existsInDictionary(word, currentDictionaryId)
-          : await CardModel.existsByWordAndTranslation(word, translation, currentDictionaryId);
-        if (exists) { skipped++; continue; }
-        const examples = (examplesStr || '').split(/;\s*/).filter(Boolean);
-        const rating = Number.parseInt(ratingStr || '0', 10) || 0;
-        await CardModel.create(word, translation, transcription ? transcription : null, examples, rating, currentDictionaryId);
-        added++;
+      const parsed = parseImportRows(text);
+      if (parsed.rows.length === 0) {
+        setToastType('info');
+        setToastMessage('Нет валидных строк для импорта');
+        setToastVisible(true);
+        setConfirmVisible(false);
+        return;
       }
-      setToastType('success'); setToastMessage(`Импорт: добавлено ${added}, пропущено ${skipped}`); setToastVisible(true);
+
+      let added = 0;
+      let skipped = 0;
+
+      for (const row of parsed.rows) {
+        const exists = dedupeMode === 'word'
+          ? await CardModel.existsInDictionary(row.word, currentDictionaryId)
+          : await CardModel.existsByWordAndTranslation(row.word, row.translation, currentDictionaryId);
+
+        if (exists) {
+          skipped += 1;
+          continue;
+        }
+
+        await CardModel.create(
+          row.word,
+          row.translation,
+          row.transcription,
+          row.examples,
+          row.rating,
+          currentDictionaryId
+        );
+
+        added += 1;
+      }
+
+      setToastType('success');
+      setToastMessage(`Импорт: добавлено ${added}, пропущено ${skipped}`);
+      setToastVisible(true);
       setConfirmVisible(false);
     } catch (e) {
-      setToastType('error'); setToastMessage('Ошибка импорта'); setToastVisible(true);
+      setToastType('error');
+      setToastMessage('Ошибка импорта');
+      setToastVisible(true);
     } finally {
       setImporting(false);
     }
@@ -194,59 +303,65 @@ const CsvScreen: React.FC = () => {
 
   const downloadTemplate = async () => {
     try {
-      // Минимальный шаблон с заголовком и примером строки
       const template = [
         'word,translation,transcription,rating,examples',
         '"stick","придерживаться","/stɪk/","1","Stick to the plan.; We stick together."',
       ].join('\n');
-      const FS = await import('expo-file-system');
-      const Sharing = await import('expo-sharing');
-      const fileName = 'vocab_template.csv';
-      const uri = (FS as any).cacheDirectory ? `${(FS as any).cacheDirectory}${fileName}` : fileName;
-      await FS.writeAsStringAsync(uri, template, { encoding: FS.EncodingType.UTF8 });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'text/csv',
-          dialogTitle: 'CSV Template',
-          UTI: 'public.comma-separated-values-text',
-        } as any);
-      } else {
-        setToastType('info');
-        setToastMessage(`Шаблон сохранён: ${uri}`);
-        setToastVisible(true);
-      }
+      await Share.share({
+        title: 'Vocab Template CSV',
+        message: template,
+      });
+      setToastType('success');
+      setToastMessage('Шаблон отправлен. Сохраните его как .csv в нужном приложении.');
+      setToastVisible(true);
     } catch (e) {
       setToastType('error');
-      setToastMessage('Не удалось сохранить шаблон. Установите expo-file-system и expo-sharing');
+      setToastMessage('Не удалось отправить шаблон');
       setToastVisible(true);
     }
+  };
+
+  const pickCsvFile = async () => {
+    setToastType('info');
+    setToastMessage('Импорт из файла пока недоступен в этой сборке. Вставьте данные из Excel/CSV в поле ниже.');
+    setToastVisible(true);
   };
 
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomInset }} className='flex-1 px-5 pt-6'>
         <Pressable onPress={() => setPickerVisible(true)} className='mb-4 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
-          <Text className='text-primary-100'>Выбрать словарь</Text>
-          <Text className='text-primary-100 opacity-80 text-xs mt-1'>Текущий используется для экспорта/импорта</Text>
+          <Text className='text-primary-100'>Словарь для импорта/экспорта: {currentDictionaryId ? `#${currentDictionaryId}` : 'не выбран'}</Text>
+          <Text className='text-primary-100 opacity-80 text-xs mt-1'>Нажмите, чтобы выбрать существующий или создать новый</Text>
         </Pressable>
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
-          <Text className='text-primary-100 text-lg mb-2'>Экспорт CSV</Text>
+          <Text className='text-primary-100 text-lg mb-2'>Экспорт</Text>
           <Button title={saving ? 'Сохранение…' : 'Экспорт в файл'} disabled={saving} onPress={exportToFile} />
-          <Text className='text-primary-100 opacity-80 mt-3 text-xs'>Формат: word, translation, transcription, rating, examples(; разделитель)</Text>
+          <Text className='text-primary-100 opacity-80 mt-3 text-xs'>Формат: word, translation, transcription, rating, examples</Text>
         </View>
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
-          <Text className='text-primary-100 text-lg mb-2'>Импорт CSV</Text>
+          <Text className='text-primary-100 text-lg mb-2'>Импорт (Excel/CSV)</Text>
+
+          <View className='mb-3 rounded-xl border border-primary-300 px-3 py-3 bg-primary-900'>
+            <Text className='text-primary-100 text-xs mb-1'>Как подготовить данные:</Text>
+            <Text className='text-primary-100 opacity-80 text-xs'>1. Колонки по порядку: word, translation, transcription, rating, examples</Text>
+            <Text className='text-primary-100 opacity-80 text-xs'>2. Обязательные: word и translation</Text>
+            <Text className='text-primary-100 opacity-80 text-xs'>3. examples: несколько примеров через ;</Text>
+            <Text className='text-primary-100 opacity-80 text-xs'>4. rating: 0..2 (если пусто, будет 0)</Text>
+            <Text className='text-primary-100 opacity-80 text-xs mt-1'>Можно вставлять прямо из Excel (таблицу), CSV и TSV поддерживаются.</Text>
+          </View>
+
           <View className='flex-row gap-3 mb-2'>
             <View className='flex-1'>
               <Button title='Скачать шаблон CSV' onPress={downloadTemplate} />
             </View>
             <View className='flex-1'>
-              <Button title='Выбрать файл CSV' onPress={pickCsvFile} />
+              <Button title='Выбрать файл' onPress={pickCsvFile} />
             </View>
           </View>
+
           <View className='flex-row gap-2 mb-2'>
             <Pressable onPress={() => setDedupeMode('word')} className={`px-3 py-2 rounded-xl border ${dedupeMode==='word' ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
               <Text className='text-primary-100 text-xs'>Дедуп: слово</Text>
@@ -255,33 +370,60 @@ const CsvScreen: React.FC = () => {
               <Text className='text-primary-100 text-xs'>слово+перевод</Text>
             </Pressable>
           </View>
+
           <TextInput
             className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200'
-            style={{ minHeight: 160, textAlignVertical: 'top' }}
+            style={{ minHeight: 180, textAlignVertical: 'top' }}
             multiline
             value={importText}
-            onChangeText={setImportText}
-            placeholder='Вставьте CSV...'
+            onChangeText={(value) => {
+              setImportText(value);
+              setImportStats(null);
+              setPreviewRows([]);
+              setDetectedFormat(null);
+              setDetectedHeader(false);
+            }}
+            placeholder='Вставьте данные из Excel/CSV сюда...'
             placeholderTextColor={'#9fbfbf'}
           />
+
           <View className='flex-row gap-3 mt-3'>
-            <View className='flex-1'><Button title='Проверить' variant='secondary' onPress={analyzeImport} /></View>
-            <View className='flex-1'><Button title='Импортировать' onPress={() => setConfirmVisible(true)} /></View>
+            <View className='flex-1'><Button title='Проверить' variant='secondary' onPress={() => analyzeImport()} /></View>
+            <View className='flex-1'><Button title={importing ? 'Импорт...' : 'Импортировать'} disabled={importing} onPress={() => setConfirmVisible(true)} /></View>
           </View>
+
           {importStats && (
-            <Text className='text-primary-100 opacity-80 mt-2 text-xs'>Строк: {importStats.total}; Добавить: {importStats.toAdd}; Дубликаты: {importStats.duplicates}</Text>
+            <Text className='text-primary-100 opacity-80 mt-2 text-xs'>
+              Формат: {detectedFormat || '-'}; Заголовок: {detectedHeader ? 'есть' : 'нет'}; Строк: {importStats.total}; Добавить: {importStats.toAdd}; Дубликаты: {importStats.duplicates}
+            </Text>
+          )}
+
+          {previewRows.length > 0 && (
+            <View className='mt-3 rounded-xl border border-primary-300 p-3 bg-primary-900'>
+              <Text className='text-primary-100 text-xs mb-2'>Превью первых строк:</Text>
+              {previewRows.map((row, index) => (
+                <Text key={`${row.word}-${row.translation}-${index}`} className='text-primary-100 opacity-80 text-xs mb-1'>
+                  {index + 1}. {row.word} -> {row.translation} {row.transcription ? `(${row.transcription})` : ''}
+                </Text>
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>
 
-      {/* Removed bottom duplicated dictionary picker button per request */}
-
-      <DictionaryPicker visible={pickerVisible} onClose={() => setPickerVisible(false)} onSelect={() => setPickerVisible(false)} />
+      <DictionaryPicker
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelect={(id) => {
+          setCurrentDictionaryId(id);
+          setPickerVisible(false);
+        }}
+      />
 
       <ConfirmDialog
         visible={confirmVisible}
-        title='Импортировать CSV?'
-        message='Будут добавлены отсутствующие слова в выбранный словарь.'
+        title='Импортировать данные?'
+        message='Будут добавлены только отсутствующие записи в выбранный словарь.'
         confirmText='Импортировать'
         cancelText='Отмена'
         onCancel={() => setConfirmVisible(false)}
