@@ -2,6 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import { useAppContext } from '@/context/AppContext';
@@ -20,13 +21,14 @@ const shuffle = <T,>(items: T[]): T[] => {
 
 export default function QuizScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { currentDictionaryId } = useAppContext();
 
   const [quizCards, setQuizCards] = useState<TCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [answered, setAnswered] = useState(false);
+  const [answered, setAnswered] = useState(false); // true after first answer in current question
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [state, setState] = useState<QuizState>('loading');
@@ -117,13 +119,14 @@ export default function QuizScreen() {
     setSelectedOption(null);
     setAnswered(false);
     await buildOptionsForCard(nextCard, quizCards);
-  }, [buildOptionsForCard, currentIndex, quizCards]);
+  }, [answered, buildOptionsForCard, currentIndex, quizCards]);
 
   const onSelectOption = useCallback(async (option: string) => {
-    if (!currentCard || answered || options.length !== 5) return;
+    setSelectedOption(option);
+    if (!currentCard || options.length !== 5) return;
+    if (answered) return;
 
     const isCorrect = option === currentCard.translation;
-    setSelectedOption(option);
     setAnswered(true);
 
     if (isCorrect) setCorrectCount((prev) => prev + 1);
@@ -153,7 +156,7 @@ export default function QuizScreen() {
   };
 
   return (
-    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: insets.bottom + 16 }}>
+    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 96 }}>
       <Text className='text-primary-100 text-2xl mb-2'>Квиз</Text>
       <Text className='text-primary-100 opacity-80 mb-4'>Текущий словарь. Выберите правильный перевод.</Text>
 
@@ -185,7 +188,7 @@ export default function QuizScreen() {
               return (
                 <Pressable
                   key={option}
-                  disabled={answered || options.length !== 5}
+                  disabled={options.length !== 5}
                   onPress={() => onSelectOption(option)}
                   className='rounded-xl border px-4 py-4'
                   style={colors}
@@ -201,13 +204,6 @@ export default function QuizScreen() {
             <Text className='text-primary-100'>Неверно: {wrongCount}</Text>
           </View>
 
-          <View className='mt-auto pt-4'>
-            <Button
-              title='Дальше'
-              onPress={goToNextCard}
-              disabled={!answered}
-            />
-          </View>
         </View>
       )}
 
@@ -217,6 +213,25 @@ export default function QuizScreen() {
           <Text className='text-primary-100 mb-1'>Верно: {correctCount}</Text>
           <Text className='text-primary-100 mb-4'>Неверно: {wrongCount}</Text>
           <Button title='Пройти снова' onPress={startQuiz} />
+        </View>
+      )}
+
+      {state === 'ready' && (
+        <View
+          style={{
+            position: 'absolute',
+            left: 20,
+            right: 20,
+            bottom: (tabBarHeight || 0) + insets.bottom + 12,
+            zIndex: 20,
+            elevation: 20,
+          }}
+        >
+          <Button
+            title='Дальше'
+            onPress={goToNextCard}
+            disabled={!answered}
+          />
         </View>
       )}
     </View>
