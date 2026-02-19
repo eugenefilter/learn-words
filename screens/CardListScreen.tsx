@@ -121,19 +121,15 @@ const CardListScreen = () => {
       <View className='px-4 pt-2'>
         <View className='flex-row items-center justify-between mb-2'>
           <Text className='text-primary-100 text-lg'>Список</Text>
-          <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
-            <Text className='text-primary-100 text-xs'>CSV</Text>
-          </Pressable>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className='flex-row gap-2'>
-            {languages.map(l => (
-              <Pressable key={l.id} onPress={() => setCurrentLanguageId(l.id)} className={`px-3 py-2 rounded-xl border ${currentLanguageId===l.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                <Text className='text-primary-100 text-xs'>{l.name}</Text>
-              </Pressable>
-            ))}
+            <Pressable onPress={() => router.push('/quiz')} className='px-3 py-2 rounded-xl border border-primary-300'>
+              <Text className='text-primary-100 text-xs'>QUIZ</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
+              <Text className='text-primary-100 text-xs'>CSV</Text>
+            </Pressable>
           </View>
-        </ScrollView>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mt-2'>
           <View className='flex-row gap-2'>
             {dicts.map(d => (

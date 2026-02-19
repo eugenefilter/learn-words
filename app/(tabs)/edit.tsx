@@ -10,7 +10,6 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useAppContext } from '@/context/AppContext';
 import DictionaryPicker from '@/components/library/DictionaryPicker';
 import { DictionaryModel } from '@/models/DictionaryModel';
 
@@ -32,7 +31,6 @@ export default function EditCard() {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
-  const { currentDictionaryId } = useAppContext();
   const [pickerVisible, setPickerVisible] = useState(false);
   const [cardDictId, setCardDictId] = useState<number | null>(null);
   const [cardDictName, setCardDictName] = useState<string>('');
@@ -71,6 +69,19 @@ export default function EditCard() {
     }
   };
 
+  const clearForm = () => {
+    setWord('');
+    setTranslation('');
+    setTranscription('');
+    setExamples([]);
+    setExample('');
+    setRating(0);
+    setCardId(null);
+    setCardDictId(null);
+    setCardDictName('');
+    router.setParams({ id: '' });
+  };
+
   const update = async () => {
     if (!cardId) return;
     try {
@@ -85,13 +96,7 @@ export default function EditCard() {
       setToastType('success');
       setToastMessage('Изменения сохранены');
       setToastVisible(true);
-      setTimeout(() => {
-        if (cardId) {
-          router.replace({ pathname: '/card', params: { id: String(cardId) } });
-        } else {
-          router.replace('/card');
-        }
-      }, 600);
+      clearForm();
     } catch (e) {
       setToastType('error');
       setToastMessage('Не удалось сохранить изменения');
@@ -161,7 +166,14 @@ export default function EditCard() {
         </View>
       </View>
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12, zIndex: 20, elevation: 20 }}>
-        <Button title="Сохранить изменения" onPress={update} className='w-full' />
+        <View className='flex-row gap-3'>
+          <View className='flex-1'>
+            <Button title="Сохранить" onPress={update} className='w-full' />
+          </View>
+          <View className='flex-1'>
+            <Button title="Отмена" variant='secondary' onPress={clearForm} className='w-full' />
+          </View>
+        </View>
       </View>
       <Toast
         visible={toastVisible}

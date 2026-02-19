@@ -2,6 +2,20 @@ import { getDB } from '@/database/database';
 import { TCard, TExample } from '@/types/TCard';
 
 export class CardModel {
+  static readonly RATING_MIN = 0;
+  static readonly RATING_MAX = 2;
+
+  static clampRating(value: number): number {
+    const safe = Number.isFinite(value) ? Math.trunc(value) : CardModel.RATING_MIN;
+    return Math.min(CardModel.RATING_MAX, Math.max(CardModel.RATING_MIN, safe));
+  }
+
+  static nextRatingByAnswer(currentRating: number, isCorrect: boolean): number {
+    const current = CardModel.clampRating(currentRating);
+    return isCorrect
+      ? CardModel.clampRating(current + 1)
+      : CardModel.clampRating(current - 1);
+  }
 
   /**
    * Возвращает карточки с примерами, с учётом пагинации.
@@ -108,10 +122,11 @@ export class CardModel {
 
   static async create(word: string, translation: string, transcription: string | null, examples: string[] = [], rating: number = 0, dictionaryId: number) {
     const db = getDB();
+    const normalizedRating = CardModel.clampRating(rating);
     await db.withTransactionAsync(async () => {
       const result = await db.runAsync(
         'INSERT INTO cards (word, translation, transcription, rating, dictionary_id) VALUES (?, ?, ?, ?, ?)',
-        [word, translation, transcription, rating, dictionaryId]
+        [word, translation, transcription, normalizedRating, dictionaryId]
       );
       const cardId = result.lastInsertRowId;
 
@@ -126,8 +141,9 @@ export class CardModel {
 
   static async update(id: number, word: string, translation: string, transcription: string | null, examples: string[] = [], rating: number = 0) {
     const db = getDB();
+    const normalizedRating = CardModel.clampRating(rating);
     await db.withTransactionAsync(async () => {
-      await db.runAsync('UPDATE cards SET word = ?, translation = ?, transcription = ?, rating = ? WHERE id = ?', [word, translation, transcription, rating, id]);
+      await db.runAsync('UPDATE cards SET word = ?, translation = ?, transcription = ?, rating = ? WHERE id = ?', [word, translation, transcription, normalizedRating, id]);
       await db.runAsync('DELETE FROM examples WHERE card_id = ?', [id]);
       for (const sentence of (examples || [])) {
         await db.runAsync('INSERT INTO examples (card_id, sentence) VALUES (?, ?)', [id, sentence]);
@@ -149,6 +165,74 @@ export class CardModel {
       result.push({ ...c, dictionaryId: c.dictionary_id, examples, show: false });
     }
     return result;
+  }
+
+  static async getQuizPool(dictionaryId: number): Promise<TCard[]> {
+    const db = getDB();
+    const countRow = await db.getFirstAsync<{ cnt: number }>(
+      'SELECT COUNT(*) as cnt FROM cards WHERE dictionary_id = ?',
+      [dictionaryId]
+    );
+    const total = countRow?.cnt ?? 0;
+    if (total < 3) {
+      return [];
+    }
+
+    const rows = await db.getAllAsync<any>(
+      'SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM()',
+      [dictionaryId]
+    );
+
+    return (rows ?? []).map((row) => ({
+      ...row,
+      dictionaryId: row.dictionary_id,
+      examples: [],
+      show: false,
+    }));
+  }
+
+  static async getWrongOptions(dictionaryId: number, excludeCardId: number, count: number = 2): Promise<string[]> {
+    const db = getDB();
+    const safeCount = Math.max(0, Math.trunc(count));
+    if (safeCount === 0) return [];
+
+    const rows = await db.getAllAsync<{ translation: string }>(
+      `SELECT DISTINCT translation
+       FROM cards
+       WHERE dictionary_id = ?
+         AND id <> ?
+         AND translation IS NOT NULL
+         AND TRIM(translation) <> ''
+       ORDER BY RANDOM()
+       LIMIT ?`,
+      [dictionaryId, excludeCardId, safeCount]
+    );
+
+    return (rows ?? [])
+      .map((r) => r.translation?.trim())
+      .filter((v): v is string => !!v);
+  }
+
+  static async updateRatingAfterAnswer(cardId: number, isCorrect: boolean): Promise<number | null> {
+    const db = getDB();
+    let nextRating: number | null = null;
+
+    await db.withTransactionAsync(async () => {
+      const row = await db.getFirstAsync<{ rating: number | null }>(
+        'SELECT rating FROM cards WHERE id = ? LIMIT 1',
+        [cardId]
+      );
+      if (!row) {
+        nextRating = null;
+        return;
+      }
+
+      const currentRating = CardModel.clampRating(row.rating ?? CardModel.RATING_MIN);
+      nextRating = CardModel.nextRatingByAnswer(currentRating, isCorrect);
+      await db.runAsync('UPDATE cards SET rating = ? WHERE id = ?', [nextRating, cardId]);
+    });
+
+    return nextRating;
   }
 
   static async nextCard(currentID: number, dictionaryId?: number): Promise<TCard | null> {

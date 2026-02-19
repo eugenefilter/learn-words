@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useState, useCallback, useEffect } from 'react';
 import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
@@ -16,7 +15,6 @@ import { DictionaryModel } from '@/models/DictionaryModel';
 
 
 export default function AddCard() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
@@ -105,7 +103,7 @@ export default function AddCard() {
       setToastType('success');
       setToastMessage('Карточка сохранена');
       setToastVisible(true);
-      setTimeout(() => router.replace('/'), 600);
+      setSaving(false);
     } catch (e) {
       setSaving(false);
       setToastType('error');

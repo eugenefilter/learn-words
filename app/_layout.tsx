@@ -81,6 +81,13 @@ const [isReady, setIsReady] = useState(false);
               tabBarIcon: ({ color }) => <IconSymbol size={28} name="arrow.up.arrow.down.circle.fill" color='#d9ebeb' />,
             }}
           />
+          <Tabs.Screen
+            name="quiz"
+            options={{
+              title: 'Quiz',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color='#d9ebeb' />,
+            }}
+          />
         </Tabs>
         </AppProvider>
       </SafeAreaView>
