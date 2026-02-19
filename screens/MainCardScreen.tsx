@@ -49,7 +49,6 @@ const MainCardScreen = () => {
   const handleSwipeLeft = async () => {
     if (card !== null) {
       const prev = await CardModel.prevCard(card.id, currentDictionaryId || undefined)
-      console.log(prev)
       if (prev !== null) {
         setCard(prev)
       } else {
@@ -62,7 +61,6 @@ const MainCardScreen = () => {
   const handleSwipeRight = async () => {
     if (card !== null) {
       const next = await CardModel.nextCard(card.id, currentDictionaryId || undefined)
-      console.log(next)
       if (next !== null) {
         setCard(next)
       } else {

@@ -85,7 +85,7 @@ export const initDatabase = async (): Promise<void> => {
       }
 
       // 3) Backfill existing cards to default dictionary
-      try { await db.execAsync(`UPDATE cards SET dictionary_id = ${dictId} WHERE dictionary_id IS NULL;`); } catch {}
+      try { await db.runAsync('UPDATE cards SET dictionary_id = ? WHERE dictionary_id IS NULL', [dictId]); } catch {}
 
       // Indices to improve lookup
       try { await db.execAsync('CREATE INDEX IF NOT EXISTS idx_cards_dictionary ON cards(dictionary_id);'); } catch {}

@@ -1,12 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { CardModel } from '@/models/CardModel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -17,7 +16,6 @@ export default function EditCard() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
 
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
@@ -69,17 +67,12 @@ export default function EditCard() {
     }
   };
 
-  const clearForm = () => {
-    setWord('');
-    setTranslation('');
-    setTranscription('');
-    setExamples([]);
-    setExample('');
-    setRating(0);
-    setCardId(null);
-    setCardDictId(null);
-    setCardDictName('');
-    router.setParams({ id: '' });
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   const update = async () => {
@@ -96,7 +89,7 @@ export default function EditCard() {
       setToastType('success');
       setToastMessage('Изменения сохранены');
       setToastVisible(true);
-      clearForm();
+      setTimeout(handleBack, 800);
     } catch (e) {
       setToastType('error');
       setToastMessage('Не удалось сохранить изменения');
@@ -108,9 +101,9 @@ export default function EditCard() {
     <KeyboardAvoidingView
       className='flex-1 bg-primary-900'
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={(tabBarHeight || 0) + insets.bottom + 12}
+      keyboardVerticalOffset={insets.bottom + 12}
     >
-      <View className='flex-1 px-5 pt-6 pb-24' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 96 }}>
+      <View className='flex-1 px-5 pt-6' style={{ paddingBottom: insets.bottom + 96 }}>
         <View>
           <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
             <Text className='text-primary-100'>Словарь: {cardDictName || (cardDictId ? `#${cardDictId}` : 'не выбран')}</Text>
@@ -165,16 +158,18 @@ export default function EditCard() {
           />
         </View>
       </View>
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + 12, zIndex: 20, elevation: 20 }}>
+
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: insets.bottom + 12, zIndex: 20, elevation: 20 }}>
         <View className='flex-row gap-3'>
           <View className='flex-1'>
             <Button title="Сохранить" onPress={update} className='w-full' />
           </View>
           <View className='flex-1'>
-            <Button title="Отмена" variant='secondary' onPress={clearForm} className='w-full' />
+            <Button title="Отмена" variant='secondary' onPress={handleBack} className='w-full' />
           </View>
         </View>
       </View>
+
       <Toast
         visible={toastVisible}
         message={toastMessage}
@@ -205,13 +200,13 @@ export default function EditCard() {
         onSelect={async (id) => {
           try {
             if (cardId && id) {
-              await CardModel.moveToDictionary(cardId, id)
+              await CardModel.moveToDictionary(cardId, id);
               setToastType('success');
               setToastMessage('Карточка перемещена в выбранный словарь');
               setToastVisible(true);
-              setCardDictId(id)
+              setCardDictId(id);
               const d = await DictionaryModel.findById(id);
-              setCardDictName(d?.name || '')
+              setCardDictName(d?.name || '');
             }
           } catch (e) {
             setToastType('error');

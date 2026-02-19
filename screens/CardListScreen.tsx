@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { useState, useCallback, useEffect } from 'react'
-import { View, Text, Pressable } from 'react-native'
-import { FlatList } from 'react-native'
+import { View, Text, Pressable, FlatList, ScrollView } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/Card'
@@ -12,8 +11,6 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAppContext } from '@/context/AppContext'
 import { LanguageModel } from '@/models/LanguageModel'
 import { DictionaryModel } from '@/models/DictionaryModel'
-import { ScrollView } from 'react-native'
-
 const CardListScreen = () => {
   const router = useRouter()
   const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext()
@@ -61,7 +58,6 @@ const CardListScreen = () => {
   }
 
   const findCards = async (value: string) => {
-    console.log(value) 
     const result = await CardModel.find(value, currentDictionaryId || undefined)
     if (result !== null) {
       setCards(result)

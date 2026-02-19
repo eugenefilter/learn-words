@@ -156,7 +156,7 @@ export default function QuizScreen() {
   };
 
   return (
-    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 96 }}>
+    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 156 }}>
       <Text className='text-primary-100 text-2xl mb-2'>Квиз</Text>
       <Text className='text-primary-100 opacity-80 mb-4'>Текущий словарь. Выберите правильный перевод.</Text>
 
@@ -199,11 +199,6 @@ export default function QuizScreen() {
             })}
           </View>
 
-          <View className='mt-6 rounded-xl border border-primary-200 bg-primary-800 p-3'>
-            <Text className='text-primary-100'>Верно: {correctCount}</Text>
-            <Text className='text-primary-100'>Неверно: {wrongCount}</Text>
-          </View>
-
         </View>
       )}
 
@@ -227,6 +222,10 @@ export default function QuizScreen() {
             elevation: 20,
           }}
         >
+          <View className='rounded-xl border border-primary-200 bg-primary-800 p-3 mb-3'>
+            <Text className='text-primary-100'>Верно: {correctCount}</Text>
+            <Text className='text-primary-100'>Неверно: {wrongCount}</Text>
+          </View>
           <Button
             title='Дальше'
             onPress={goToNextCard}

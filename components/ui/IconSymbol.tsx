@@ -27,7 +27,8 @@ const MAPPING = {
   'battery.0': 'battery-0-bar',
   'battery.50': 'battery-4-bar',
   'battery.100': 'battery-full',
-  'plus.circle.fill': 'add-circle'
+  'plus.circle.fill': 'add-circle',
+  'arrow.clockwise': 'replay',
 } as IconMapping;
 
 /**

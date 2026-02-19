@@ -43,9 +43,11 @@ const FrontCard: FC<ICardProps> = ({card, onEdit, onDelete}) => {
             {card.transcription}
           </Text>
         ) : null}
-        <Text className='text-primary-100 text-xl opacity-90 text-center'>
-          to limit yourself to doing or using one particular thing and not change to anything else
-        </Text>
+        {card.explanation ? (
+          <Text className='text-primary-100 text-xl opacity-90 text-center'>
+            {card.explanation}
+          </Text>
+        ) : null}
       </View>
 
       <FlatList
