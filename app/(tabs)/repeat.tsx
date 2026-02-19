@@ -1,13 +1,15 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getDB } from '@/database/database';
 import { useAppContext } from '@/context/AppContext';
 import { CardModel } from '@/models/CardModel';
 import Button from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { FLOATING_PANEL_GAP } from '@/constants/layout';
+import * as Haptics from 'expo-haptics';
 
 type RepeatCard = {
   id: number;
@@ -80,6 +82,10 @@ export default function RepeatScreen() {
     const card = cards[index];
     if (!card) return;
 
+    Haptics.notificationAsync(
+      delta > 0 ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
+    );
+
     const newRating = CardModel.clampRating(card.rating + delta);
     await getDB().runAsync('UPDATE cards SET rating = ? WHERE id = ?', [newRating, card.id]);
 
@@ -95,7 +101,7 @@ export default function RepeatScreen() {
   return (
     <View
       className='flex-1 bg-primary-900 px-5 pt-6'
-      style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 12 }}
+      style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + FLOATING_PANEL_GAP }}
     >
       <Text className='text-primary-100 text-2xl mb-1'>Повтор</Text>
       <Text className='text-primary-100 opacity-60 text-sm mb-4'>
@@ -180,24 +186,8 @@ export default function RepeatScreen() {
 
           {revealed ? (
             <View className='flex-row gap-3'>
-              <Pressable
-                onPress={() => handleAnswer(-1)}
-                className='flex-1 rounded-xl border py-4 items-center'
-                style={{ borderColor: '#ef4444', backgroundColor: '#1c0a0a' }}
-              >
-                <Text style={{ color: '#ef4444' }} className='text-base font-semibold'>
-                  Не знаю
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleAnswer(1)}
-                className='flex-1 rounded-xl border py-4 items-center'
-                style={{ borderColor: '#22c55e', backgroundColor: '#0a1c0a' }}
-              >
-                <Text style={{ color: '#22c55e' }} className='text-base font-semibold'>
-                  Знаю
-                </Text>
-              </Pressable>
+              <Button title='Не знаю' onPress={() => handleAnswer(-1)} variant='danger' className='flex-1' />
+              <Button title='Знаю' onPress={() => handleAnswer(1)} variant='success' className='flex-1' />
             </View>
           ) : (
             <Button title='Показать перевод' onPress={() => setRevealed(true)} />

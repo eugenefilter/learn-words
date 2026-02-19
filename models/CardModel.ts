@@ -1,5 +1,5 @@
 import { getDB } from '@/database/database';
-import { TCard, TExample } from '@/types/TCard';
+import { TCard, TExample, CardRow } from '@/types/TCard';
 
 export class CardModel {
   static readonly RATING_MIN = 0;
@@ -23,52 +23,34 @@ export class CardModel {
    * @param offset с какого смещения
    */
   static async all(limit: number = 20, offset: number = 0, dictionaryId?: number): Promise<TCard[]> {
-    const db = getDB(); // теперь синхронно
+    const db = getDB();
 
-    // Получаем сами карточки
     const baseSql = dictionaryId
       ? 'SELECT * FROM cards WHERE dictionary_id = ? LIMIT ? OFFSET ?;'
       : 'SELECT * FROM cards LIMIT ? OFFSET ?;'
 
     const cardsRaw = dictionaryId
-      ? await db.getAllAsync<any>(baseSql, [dictionaryId, limit, offset])
-      : await db.getAllAsync<any>(baseSql, [limit, offset]);
+      ? await db.getAllAsync<CardRow>(baseSql, [dictionaryId, limit, offset])
+      : await db.getAllAsync<CardRow>(baseSql, [limit, offset]);
 
-    // Для каждой карточки находим её примеры
-    // const cardsWithExamples = await Promise.all(
-    //   cardsRaw.map(async (card) => {
-    //     const examples = await db.getAllAsync<TExample>(
-    //       'SELECT id, sentence FROM examples WHERE card_id = ?;',
-    //       [card.id],
-    //     );
-    //     return {
-    //       ...card,
-    //       examples,
-    //     };
-    //   })
-    // );
-
-    return cardsRaw;
+    return cardsRaw.map((row) => ({ ...row, dictionaryId: row.dictionary_id, examples: [], show: false }));
   }
 
-  static async find(text: string, dictionaryId?: number): Promise<TCard[] | []> {
+  static async find(text: string, dictionaryId?: number, limit: number = 20, offset: number = 0): Promise<TCard[]> {
     const db = getDB();
 
-    // Используем маску и поиск по word/translation без учета регистра
     const mask = `%${text}%`;
     const cardsRaw = dictionaryId
-      ? await db.getAllAsync<any>(
-          'SELECT * FROM cards WHERE dictionary_id = ? AND (word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE)',
-          [dictionaryId, mask, mask]
+      ? await db.getAllAsync<CardRow>(
+          'SELECT * FROM cards WHERE dictionary_id = ? AND (word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE) LIMIT ? OFFSET ?',
+          [dictionaryId, mask, mask, limit, offset]
         )
-      : await db.getAllAsync<any>(
-          'SELECT * FROM cards WHERE word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE',
-          [mask, mask]
+      : await db.getAllAsync<CardRow>(
+          'SELECT * FROM cards WHERE word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE LIMIT ? OFFSET ?',
+          [mask, mask, limit, offset]
         );
 
-    if (!cardsRaw) return [];
-
-    return cardsRaw;
+    return (cardsRaw ?? []).map((row) => ({ ...row, dictionaryId: row.dictionary_id, examples: [], show: false }));
   }
 
   static async findByWord(text: string, dictionaryId?: number): Promise<TCard | null> {
@@ -76,18 +58,18 @@ export class CardModel {
 
     const mask = `%${text}%`
     const result = dictionaryId
-      ? await db.getFirstAsync<any>('SELECT * FROM cards WHERE dictionary_id = ? AND (word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE)', [dictionaryId, mask, mask])
-      : await db.getFirstAsync<any>('SELECT * FROM cards WHERE word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE', [mask, mask]);
+      ? await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE dictionary_id = ? AND (word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE)', [dictionaryId, mask, mask])
+      : await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE word LIKE ? COLLATE NOCASE OR translation LIKE ? COLLATE NOCASE', [mask, mask]);
     if (!result) return null;
 
     const examples = await db.getAllAsync<TExample>(
       'SELECT * FROM examples WHERE card_id = ?',
       [result.id]
     );
-  
+
     return {
       ...result,
-      dictionaryId: (result as any).dictionary_id,
+      dictionaryId: result.dictionary_id,
       examples,
       show: false
     };
@@ -96,17 +78,17 @@ export class CardModel {
   static async findById(id: number): Promise<TCard | null> {
     const db = getDB();
 
-    const result = await db.getFirstAsync<TCard>('SELECT * FROM cards WHERE id = ?', [id]);
+    const result = await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id = ?', [id]);
     if (!result) return null;
-  
+
     const examples = await db.getAllAsync<TExample>(
       'SELECT * FROM examples WHERE card_id = ?',
       [id]
     );
-  
+
     return {
       ...result,
-      dictionaryId: (result as any).dictionary_id,
+      dictionaryId: result.dictionary_id,
       examples,
       show: false
     };
@@ -158,32 +140,39 @@ export class CardModel {
 
   static async allWithExamplesByDictionary(dictionaryId: number): Promise<TCard[]> {
     const db = getDB();
-    const cards = await db.getAllAsync<any>('SELECT * FROM cards WHERE dictionary_id = ? ORDER BY id ASC', [dictionaryId]);
-    const result: TCard[] = [];
-    for (const c of cards) {
-      const examples = await db.getAllAsync<any>('SELECT id, sentence FROM examples WHERE card_id = ?', [c.id]);
-      result.push({ ...c, dictionaryId: c.dictionary_id, examples, show: false });
+    const cards = await db.getAllAsync<CardRow>('SELECT * FROM cards WHERE dictionary_id = ? ORDER BY id ASC', [dictionaryId]);
+    if (cards.length === 0) return [];
+
+    const exRows = await db.getAllAsync<TExample & { card_id: number }>(
+      'SELECT id, card_id, sentence FROM examples WHERE card_id IN (SELECT id FROM cards WHERE dictionary_id = ?)',
+      [dictionaryId]
+    );
+
+    const byCardId = new Map<number, TExample[]>();
+    for (const ex of exRows) {
+      const list = byCardId.get(ex.card_id) ?? [];
+      list.push({ id: ex.id, sentence: ex.sentence });
+      byCardId.set(ex.card_id, list);
     }
-    return result;
+
+    return cards.map((c) => ({
+      ...c,
+      dictionaryId: c.dictionary_id,
+      examples: byCardId.get(c.id) ?? [],
+      show: false,
+    }));
   }
 
   static async getQuizPool(dictionaryId: number): Promise<TCard[]> {
     const db = getDB();
-    const countRow = await db.getFirstAsync<{ cnt: number }>(
-      'SELECT COUNT(*) as cnt FROM cards WHERE dictionary_id = ?',
-      [dictionaryId]
-    );
-    const total = countRow?.cnt ?? 0;
-    if (total < 3) {
-      return [];
-    }
-
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<CardRow>(
       'SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM()',
       [dictionaryId]
     );
 
-    return (rows ?? []).map((row) => ({
+    if (!rows || rows.length < 3) return [];
+
+    return rows.map((row) => ({
       ...row,
       dictionaryId: row.dictionary_id,
       examples: [],
@@ -238,18 +227,18 @@ export class CardModel {
   static async nextCard(currentID: number, dictionaryId?: number): Promise<TCard | null> {
     const db = getDB();
     const result = dictionaryId
-      ? await db.getFirstAsync<any>('SELECT * FROM cards WHERE id > ? AND dictionary_id = ? ORDER BY id ASC LIMIT 1', [currentID, dictionaryId])
-      : await db.getFirstAsync<any>('SELECT * FROM cards WHERE id > ? ORDER BY id ASC LIMIT 1', [currentID])
+      ? await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id > ? AND dictionary_id = ? ORDER BY id ASC LIMIT 1', [currentID, dictionaryId])
+      : await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id > ? ORDER BY id ASC LIMIT 1', [currentID])
     if (!result) return null
-  
+
     const examples = await db.getAllAsync<TExample>(
       'SELECT * FROM examples WHERE card_id = ?',
       [result.id]
     )
-  
+
     return {
       ...result,
-      dictionaryId: (result as any).dictionary_id,
+      dictionaryId: result.dictionary_id,
       examples,
       show: false
     }
@@ -258,18 +247,18 @@ export class CardModel {
   static async prevCard(currentID: number, dictionaryId?: number): Promise<TCard | null> {
     const db = getDB()
     const result = dictionaryId
-      ? await db.getFirstAsync<any>('SELECT * FROM cards WHERE id < ? AND dictionary_id = ? ORDER BY id DESC LIMIT 1', [currentID, dictionaryId])
-      : await db.getFirstAsync<any>('SELECT * FROM cards WHERE id < ? ORDER BY id DESC LIMIT 1', [currentID])
+      ? await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id < ? AND dictionary_id = ? ORDER BY id DESC LIMIT 1', [currentID, dictionaryId])
+      : await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id < ? ORDER BY id DESC LIMIT 1', [currentID])
     if (!result) return null
-  
+
     const examples = await db.getAllAsync<TExample>(
       'SELECT * FROM examples WHERE card_id = ?',
       [result.id]
     )
-  
+
     return {
       ...result,
-      dictionaryId: (result as any).dictionary_id,
+      dictionaryId: result.dictionary_id,
       examples,
       show: false
     }
@@ -278,8 +267,8 @@ export class CardModel {
   static async firstCard(dictionaryId?: number): Promise<TCard | null> {
     const db = getDB();
     const result = dictionaryId
-      ? await db.getFirstAsync<any>('SELECT * FROM cards WHERE dictionary_id = ? ORDER BY id ASC LIMIT 1', [dictionaryId])
-      : await db.getFirstAsync<any>('SELECT * FROM cards ORDER BY id ASC LIMIT 1');
+      ? await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE dictionary_id = ? ORDER BY id ASC LIMIT 1', [dictionaryId])
+      : await db.getFirstAsync<CardRow>('SELECT * FROM cards ORDER BY id ASC LIMIT 1');
     if (!result) return null;
 
     const examples = await db.getAllAsync<TExample>(
@@ -289,7 +278,7 @@ export class CardModel {
 
     return {
       ...result,
-      dictionaryId: (result as any).dictionary_id,
+      dictionaryId: result.dictionary_id,
       examples,
       show: false,
     };
@@ -298,8 +287,8 @@ export class CardModel {
   static async lastCard(dictionaryId?: number): Promise<TCard | null> {
     const db = getDB();
     const result = dictionaryId
-      ? await db.getFirstAsync<any>('SELECT * FROM cards WHERE dictionary_id = ? ORDER BY id DESC LIMIT 1', [dictionaryId])
-      : await db.getFirstAsync<any>('SELECT * FROM cards ORDER BY id DESC LIMIT 1');
+      ? await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE dictionary_id = ? ORDER BY id DESC LIMIT 1', [dictionaryId])
+      : await db.getFirstAsync<CardRow>('SELECT * FROM cards ORDER BY id DESC LIMIT 1');
     if (!result) return null;
 
     const examples = await db.getAllAsync<TExample>(
@@ -309,7 +298,7 @@ export class CardModel {
 
     return {
       ...result,
-      dictionaryId: (result as any).dictionary_id,
+      dictionaryId: result.dictionary_id,
       examples,
       show: false,
     };

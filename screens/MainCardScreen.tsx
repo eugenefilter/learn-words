@@ -1,4 +1,4 @@
-import { Pressable, View, Text } from 'react-native'
+import { Pressable, View, Text, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import SearchInput from '@/components/ui/SearchInput';
 import { CardModel } from '@/models/CardModel';
@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAppContext } from '@/context/AppContext'
+import EmptyState from '@/components/ui/EmptyState'
+import * as Haptics from 'expo-haptics'
 
 const MainCardScreen = () => {
   const insets = useSafeAreaInsets();
@@ -16,11 +18,13 @@ const MainCardScreen = () => {
   const { currentDictionaryId } = useAppContext();
   const [search, setSearch] = useState('')
   const [card, setCard] = useState<TCard | null>(null)
+  const [loading, setLoading] = useState(true)
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [confirmVisible, setConfirmVisible] = useState(false)
 
   useEffect(() => {
     const loadById = async () => {
+      setLoading(true)
       if (id && typeof id === 'string') {
         const found = await CardModel.findById(parseInt(id, 10))
         if (found) {
@@ -36,9 +40,10 @@ const MainCardScreen = () => {
           setSearch((prev) => (prev && prev.length > 0 ? prev : first.word))
         }
       }
+      setLoading(false)
     }
     loadById()
-  }, [id])
+  }, [id, currentDictionaryId])
 
   const searchCardHandler = async (text: string) => {
     setSearch(text)
@@ -47,6 +52,7 @@ const MainCardScreen = () => {
   }
 
   const handleSwipeLeft = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (card !== null) {
       const prev = await CardModel.prevCard(card.id, currentDictionaryId || undefined)
       if (prev !== null) {
@@ -59,6 +65,7 @@ const MainCardScreen = () => {
   }
 
   const handleSwipeRight = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (card !== null) {
       const next = await CardModel.nextCard(card.id, currentDictionaryId || undefined)
       if (next !== null) {
@@ -116,13 +123,23 @@ const MainCardScreen = () => {
       />
 
       <View className='flex-1'>
-        {card && (
-          <FlipCardNavigator 
-            card={card} 
-            onSwipeLeft={handleSwipeLeft} 
-            onSwipeRight={handleSwipeRight} 
+        {loading ? (
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color='#d9ebeb' />
+          </View>
+        ) : card ? (
+          <FlipCardNavigator
+            card={card}
+            onSwipeLeft={handleSwipeLeft}
+            onSwipeRight={handleSwipeRight}
             onEdit={handleEdit}
             onDelete={handleDelete}
+          />
+        ) : (
+          <EmptyState
+            icon='rectangle.on.rectangle'
+            title='Карточек нет'
+            subtitle='Добавьте первую карточку на вкладке «+»'
           />
         )}
       </View>
@@ -146,14 +163,14 @@ const MainCardScreen = () => {
               style={{ aspectRatio: 2 }}
             >
               <IconSymbol name='chevron.left' size={30} color={'#d9ebeb'} />
-              <Text className='text-primary-100 text-2xl ml-3 h-48'>Назад</Text>
+              <Text className='text-primary-100 text-2xl ml-3'>Назад</Text>
             </Pressable>
             <Pressable 
               onPress={handleSwipeRight} 
               className='flex-1 rounded-2xl flex-row items-center justify-center bg-primary-300' 
               style={{ aspectRatio: 2 }}
             >
-              <Text className='text-white text-2xl mr-3 h-48'>Далее</Text>
+              <Text className='text-white text-2xl mr-3'>Далее</Text>
               <IconSymbol name='chevron.right' size={30} color={'#ffffff'} />
             </Pressable>
           </View>

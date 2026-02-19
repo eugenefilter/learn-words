@@ -11,9 +11,6 @@ interface FlipCardProps {
 export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardProps) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const [flipped, setFlipped] = useState(false);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchStartTime = useRef(0);
 
   // Keep latest handlers to avoid stale closures inside PanResponder
   const onSwipeLeftRef = useRef(onSwipeLeft);
@@ -37,21 +34,6 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
     }).start(() => setFlipped(true));
   };
 
-  const rotateY = animatedValue.interpolate({
-    inputRange: [0, 180],
-    outputRange: ['0deg', '180deg'],
-  });
-
-  const frontOpacity = animatedValue.interpolate({
-    inputRange: [0, 90],
-    outputRange: [1, 0],
-  });
-
-  const backOpacity = animatedValue.interpolate({
-    inputRange: [90, 180],
-    outputRange: [0, 1],
-  });
-
   const frontInterpolate = animatedValue.interpolate({
     inputRange: [0, 180],
     outputRange: ['0deg', '180deg'],
@@ -68,11 +50,6 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
-      onPanResponderGrant: (_, g) => {
-        touchStartX.current = g.x0;
-        touchStartY.current = g.y0;
-        touchStartTime.current = Date.now();
-      },
       onPanResponderRelease: (_, g) => {
         const dx = g.dx;
         const dy = g.dy;
@@ -104,7 +81,6 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
         <Animated.View
           style={[
             styles.card,
-            // styles.cardBack,
             {
               transform: [{ rotateY: backInterpolate }],
               position: 'absolute',

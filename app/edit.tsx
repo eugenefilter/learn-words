@@ -11,6 +11,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import DictionaryPicker from '@/components/library/DictionaryPicker';
 import { DictionaryModel } from '@/models/DictionaryModel';
+import { CONTENT_BOTTOM_PADDING, FLOATING_PANEL_GAP } from '@/constants/layout';
 
 export default function EditCard() {
   const router = useRouter();
@@ -101,9 +102,9 @@ export default function EditCard() {
     <KeyboardAvoidingView
       className='flex-1 bg-primary-900'
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={insets.bottom + 12}
+      keyboardVerticalOffset={insets.bottom + FLOATING_PANEL_GAP}
     >
-      <View className='flex-1 px-5 pt-6' style={{ paddingBottom: insets.bottom + 96 }}>
+      <View className='flex-1 px-5 pt-6' style={{ paddingBottom: insets.bottom + CONTENT_BOTTOM_PADDING }}>
         <View>
           <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
             <Text className='text-primary-100'>Словарь: {cardDictName || (cardDictId ? `#${cardDictId}` : 'не выбран')}</Text>
@@ -159,7 +160,7 @@ export default function EditCard() {
         </View>
       </View>
 
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: insets.bottom + 12, zIndex: 20, elevation: 20 }}>
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: insets.bottom + FLOATING_PANEL_GAP, zIndex: 20, elevation: 20 }}>
         <View className='flex-row gap-3'>
           <View className='flex-1'>
             <Button title="Сохранить" onPress={update} className='w-full' />

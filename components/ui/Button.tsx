@@ -5,7 +5,7 @@ import clsx from 'clsx'
 type ButtonProps = {
   title: string
   onPress: () => void
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'danger' | 'success'
   className?: string
   disabled?: boolean
 }
@@ -16,11 +16,16 @@ const Button = ({ title, onPress, variant = 'primary', className, disabled = fal
     base,
     variant === 'primary' && 'bg-accent-600',
     variant === 'secondary' && 'bg-primary-300',
+    variant === 'danger' && 'border border-red-500 bg-red-950',
+    variant === 'success' && 'border border-green-500 bg-green-950',
     disabled && 'opacity-50',
     className,
   )
 
-  const textStyles = clsx('text-white text-lg font-semibold')
+  const textStyles = clsx(
+    'text-lg font-semibold',
+    variant === 'danger' ? 'text-red-400' : variant === 'success' ? 'text-green-400' : 'text-white',
+  )
 
   return (
     <Pressable
@@ -32,7 +37,6 @@ const Button = ({ title, onPress, variant = 'primary', className, disabled = fal
         pressed && !disabled ? {
           opacity: Platform.OS === 'ios' ? 0.9 : 1,
           transform: [{ scale: 0.94 }],
-          backgroundColor: variant === 'primary' ? '#0d9488' : '#1e4747', // accent-700 / primary-200
         } : undefined,
       ]}
     >

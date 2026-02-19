@@ -26,20 +26,26 @@
 ```tsx
 // БАГИ:
 // 1. Колонки `level` нет в схеме БД — есть `rating`
-const result = await db.getAllAsync<Card>('SELECT * FROM cards WHERE level <= 3');
+const result = await db.getAllAsync<Card>(
+  "SELECT * FROM cards WHERE level <= 3",
+);
 
 // 2. Обновление несуществующей колонки
-await db.runAsync('UPDATE cards SET level = ? WHERE id = ?', [newLevel, card.id]);
+await db.runAsync("UPDATE cards SET level = ? WHERE id = ?", [
+  newLevel,
+  card.id,
+]);
 ```
 
 Экран `Repeat` полностью нерабочий: запрос всегда вернёт пустой массив, а UPDATE не изменит ничего, потому что колонки `level` в таблице `cards` нет. Нужно заменить на `rating`.
 
 **Исправление:**
+
 ```tsx
 // Правильный запрос — колонка называется `rating`
-'SELECT * FROM cards WHERE rating <= 1'
+"SELECT * FROM cards WHERE rating <= 1";
 // Обновление тоже через rating
-'UPDATE cards SET rating = ? WHERE id = ?'
+"UPDATE cards SET rating = ? WHERE id = ?";
 ```
 
 ---
@@ -50,20 +56,24 @@ await db.runAsync('UPDATE cards SET level = ? WHERE id = ?', [newLevel, card.id]
 
 ```tsx
 // БАГИ: это тестовый текст, который попал в прод
-<Text className='text-primary-100 text-xl opacity-90 text-center'>
-  to limit yourself to doing or using one particular thing and not change to anything else
+<Text className="text-primary-100 text-xl opacity-90 text-center">
+  to limit yourself to doing or using one particular thing and not change to
+  anything else
 </Text>
 ```
 
 Этот текст не связан ни с одним полем `card`. Скорее всего, это должно быть `card.explanation`, но сейчас отображается статичная строка. Поле `explanation` есть в схеме БД и в `TCard`, но нигде не выводится.
 
 **Исправление:**
+
 ```tsx
-{card.explanation ? (
-  <Text className='text-primary-100 text-xl opacity-90 text-center'>
-    {card.explanation}
-  </Text>
-) : null}
+{
+  card.explanation ? (
+    <Text className="text-primary-100 text-xl opacity-90 text-center">
+      {card.explanation}
+    </Text>
+  ) : null;
+}
 ```
 
 ---
@@ -74,14 +84,20 @@ await db.runAsync('UPDATE cards SET level = ? WHERE id = ?', [newLevel, card.id]
 
 ```ts
 // РИСК: строковая интерполяция в SQL
-await db.execAsync(`UPDATE cards SET dictionary_id = ${dictId} WHERE dictionary_id IS NULL;`);
+await db.execAsync(
+  `UPDATE cards SET dictionary_id = ${dictId} WHERE dictionary_id IS NULL;`,
+);
 ```
 
 Переменная `dictId` получена из БД и является числом, поэтому прямой угрозы сейчас нет. Однако это плохой паттерн — нужно всегда использовать параметризованные запросы.
 
 **Исправление:**
+
 ```ts
-await db.runAsync('UPDATE cards SET dictionary_id = ? WHERE dictionary_id IS NULL', [dictId]);
+await db.runAsync(
+  "UPDATE cards SET dictionary_id = ? WHERE dictionary_id IS NULL",
+  [dictId],
+);
 ```
 
 ---
@@ -92,11 +108,11 @@ await db.runAsync('UPDATE cards SET dictionary_id = ? WHERE dictionary_id IS NUL
 
 Несколько `console.log` оставлены в коде и попадут в production-сборку.
 
-| Файл | Строка | Содержимое |
-|------|--------|------------|
-| `screens/CardListScreen.tsx` | 64 | `console.log(value)` |
-| `screens/MainCardScreen.tsx` | 52 | `console.log(prev)` |
-| `screens/MainCardScreen.tsx` | 65 | `console.log(next)` |
+| Файл                         | Строка | Содержимое           |
+| ---------------------------- | ------ | -------------------- |
+| `screens/CardListScreen.tsx` | 64     | `console.log(value)` |
+| `screens/MainCardScreen.tsx` | 52     | `console.log(prev)`  |
+| `screens/MainCardScreen.tsx` | 65     | `console.log(next)`  |
 
 Все три нужно удалить. Для отладки в будущем используйте `__DEV__ && console.log(...)`.
 
@@ -107,15 +123,16 @@ await db.runAsync('UPDATE cards SET dictionary_id = ? WHERE dictionary_id IS NUL
 **Файл:** `screens/CardListScreen.tsx`
 
 ```tsx
-import { View, Text, Pressable } from 'react-native'   // строка 4
-import { FlatList } from 'react-native'                 // строка 5
+import { View, Text, Pressable } from "react-native"; // строка 4
+import { FlatList } from "react-native"; // строка 5
 // ...
-import { ScrollView } from 'react-native'               // строка 15 — дубль!
+import { ScrollView } from "react-native"; // строка 15 — дубль!
 ```
 
 Нужно объединить в один импорт:
+
 ```tsx
-import { View, Text, Pressable, FlatList, ScrollView } from 'react-native'
+import { View, Text, Pressable, FlatList, ScrollView } from "react-native";
 ```
 
 ---
@@ -145,8 +162,8 @@ useFocusEffect(
   useCallback(() => {
     loadContext();
     loadCards();
-  }, [])  // ← пустой массив deps, но функции ссылаются на currentDictionaryId
-)
+  }, []), // ← пустой массив deps, но функции ссылаются на currentDictionaryId
+);
 ```
 
 `loadCards` и `loadContext` — обычные функции внутри компонента (не `useCallback`), поэтому они пересоздаются при каждом рендере. `useCallback(() => ..., [])` захватывает первую версию этих функций и не обновляется. Также `loadContext` вызывает `setCurrentLanguageId`/`setCurrentDictionaryId` внутри условий, что может приводить к лишним рендерам.
@@ -163,11 +180,11 @@ useFocusEffect(
 useEffect(() => {
   const loadById = async () => {
     // ...
-    const first = await CardModel.firstCard(currentDictionaryId || undefined)
+    const first = await CardModel.firstCard(currentDictionaryId || undefined);
     // ...
-  }
-  loadById()
-}, [id])  // ← currentDictionaryId не в зависимостях!
+  };
+  loadById();
+}, [id]); // ← currentDictionaryId не в зависимостях!
 ```
 
 При смене словаря карточка не перезагружается. Нужно добавить `currentDictionaryId` в deps.
@@ -176,11 +193,11 @@ useEffect(() => {
 
 ### 2.6 Закомментированный мёртвый код
 
-| Файл | Строки | Описание |
-|------|--------|----------|
-| `models/CardModel.ts` | 38–50 | Закомментированная загрузка примеров в `all()` |
-| `components/card/FlipCard.tsx` | 107 | `// styles.cardBack` |
-| `screens/CardListScreen.tsx` | 143–148 | Закомментированная кнопка "Add Card" |
+| Файл                           | Строки  | Описание                                       |
+| ------------------------------ | ------- | ---------------------------------------------- |
+| `models/CardModel.ts`          | 38–50   | Закомментированная загрузка примеров в `all()` |
+| `components/card/FlipCard.tsx` | 107     | `// styles.cardBack`                           |
+| `screens/CardListScreen.tsx`   | 143–148 | Закомментированная кнопка "Add Card"           |
 
 Мёртвый код ухудшает читаемость. Если нужна история — используйте git.
 
@@ -272,16 +289,19 @@ const rows = await db.getAllAsync<any>(
    LEFT JOIN examples e ON e.card_id = c.id
    WHERE c.dictionary_id = ?
    ORDER BY c.id ASC`,
-  [dictionaryId]
+  [dictionaryId],
 );
 // затем агрегировать примеры по card.id
 
 // Вариант 2: два запроса вместо N+1
-const cards = await db.getAllAsync<any>('SELECT * FROM cards WHERE dictionary_id = ?', [dictionaryId]);
-const cardIds = cards.map(c => c.id);
+const cards = await db.getAllAsync<any>(
+  "SELECT * FROM cards WHERE dictionary_id = ?",
+  [dictionaryId],
+);
+const cardIds = cards.map((c) => c.id);
 const examples = await db.getAllAsync<any>(
-  `SELECT * FROM examples WHERE card_id IN (${cardIds.map(() => '?').join(',')})`,
-  cardIds
+  `SELECT * FROM examples WHERE card_id IN (${cardIds.map(() => "?").join(",")})`,
+  cardIds,
 );
 // затем сгруппировать
 ```
@@ -315,8 +335,8 @@ static async getQuizPool(dictionaryId: number): Promise<TCard[]> {
 
 ```ts
 const rows = await db.getAllAsync<any>(
-  'SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM()',
-  [dictionaryId]
+  "SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM()",
+  [dictionaryId],
 );
 if (rows.length < 3) return [];
 ```
@@ -347,16 +367,14 @@ const getOptionColors = (option: string) => {
 
 ```tsx
 const COLORS = {
-  default: { backgroundColor: '#0e1c1c', borderColor: '#1e4747' },
-  correct: { backgroundColor: '#166534', borderColor: '#22c55e' },
-  wrong:   { backgroundColor: '#991b1b', borderColor: '#ef4444' },
+  default: { backgroundColor: "#0e1c1c", borderColor: "#1e4747" },
+  correct: { backgroundColor: "#166534", borderColor: "#22c55e" },
+  wrong: { backgroundColor: "#991b1b", borderColor: "#ef4444" },
 } as const;
 
 // Мемоизировать маппинг при изменении answered/selectedOption
 const optionStyles = useMemo(() => {
-  return Object.fromEntries(
-    options.map((opt) => [opt, computeStyle(opt)])
-  );
+  return Object.fromEntries(options.map((opt) => [opt, computeStyle(opt)]));
 }, [options, answered, selectedOption, currentCard]);
 ```
 
@@ -401,22 +419,24 @@ static async find(text: string, dictionaryId?: number): Promise<TCard[] | []> {
 
 ```tsx
 const [currentLanguageId, setCurrentLanguageId] = useState<number | null>(null);
-const [currentDictionaryId, setCurrentDictionaryId] = useState<number | null>(null);
+const [currentDictionaryId, setCurrentDictionaryId] = useState<number | null>(
+  null,
+);
 ```
 
 После закрытия и повторного открытия приложения выбранный язык и словарь сбрасываются на дефолтные. Нужно сохранять в `AsyncStorage`:
 
 ```tsx
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // При инициализации читать сохранённые ID
-const saved = await AsyncStorage.getItem('currentDictionaryId');
+const saved = await AsyncStorage.getItem("currentDictionaryId");
 if (saved) setCurrentDictionaryId(Number(saved));
 
 // При изменении — сохранять
 const handleSetDictionary = useCallback((id: number) => {
   setCurrentDictionaryId(id);
-  AsyncStorage.setItem('currentDictionaryId', String(id));
+  AsyncStorage.setItem("currentDictionaryId", String(id));
 }, []);
 ```
 
@@ -443,6 +463,7 @@ style={{ position: 'absolute', bottom: insets.bottom + 70 }}
 Подобные числа нужно выносить в константы с понятным именем или рассчитывать динамически. Значение `156` в quiz.tsx появилось как паддинг под прилипший score-блок — его нужно привязать к реальной высоте блока через `onLayout`.
 
 **Правильный подход:**
+
 ```tsx
 const [scoreBarHeight, setScoreBarHeight] = useState(0);
 // ...
@@ -477,6 +498,7 @@ const [scoreBarHeight, setScoreBarHeight] = useState(0);
 Пока карточки загружаются из SQLite, пользователь видит пустой экран. Нужны индикаторы загрузки (`ActivityIndicator`) или скелетоны.
 
 **Пример исправления для `CardListScreen`:**
+
 ```tsx
 const [loading, setLoading] = useState(true);
 
@@ -524,7 +546,7 @@ ListEmptyComponent={() => (
 `expo-haptics` подключён как зависимость, но используется ли он — не видно в основных экранах. Тактильная обратная связь улучшает ощущение при нажатии на карточку, ответе в квизе и т.д.
 
 ```tsx
-import * as Haptics from 'expo-haptics';
+import * as Haptics from "expo-haptics";
 
 // При правильном ответе в квизе:
 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -549,7 +571,8 @@ useEffect(() => {
   const ensureDefaults = async () => {
     const langId = await LanguageModel.firstOrCreateDefault();
     setCurrentLanguageId(langId);
-    const dictId = await DictionaryModel.firstOrCreateDefaultForLanguage(langId);
+    const dictId =
+      await DictionaryModel.firstOrCreateDefaultForLanguage(langId);
     setCurrentDictionaryId(dictId);
   };
   ensureDefaults(); // ← нет try/catch, нет индикации ошибки пользователю
@@ -566,11 +589,20 @@ useEffect(() => {
 
 ```ts
 // nextCard, prevCard, firstCard, lastCard — одинаковый финальный блок:
-const examples = await db.getAllAsync<TExample>('SELECT * FROM examples WHERE card_id = ?', [result.id]);
-return { ...result, dictionaryId: (result as any).dictionary_id, examples, show: false };
+const examples = await db.getAllAsync<TExample>(
+  "SELECT * FROM examples WHERE card_id = ?",
+  [result.id],
+);
+return {
+  ...result,
+  dictionaryId: (result as any).dictionary_id,
+  examples,
+  show: false,
+};
 ```
 
 Нужно вынести в приватный хелпер:
+
 ```ts
 private static async attachExamples(row: CardRow): Promise<TCard> {
   const examples = await getDB().getAllAsync<TExample>(
@@ -587,7 +619,7 @@ private static async attachExamples(row: CardRow): Promise<TCard> {
 **Файл:** `app/(tabs)/_layout.tsx`
 
 ```tsx
-import { Slot } from 'expo-router';
+import { Slot } from "expo-router";
 export default function TabLayout() {
   return <Slot />;
 }
@@ -603,7 +635,7 @@ export default function TabLayout() {
 
 ```tsx
 // app/_layout.tsx
-import { ErrorBoundary } from 'expo-router';
+import { ErrorBoundary } from "expo-router";
 export { ErrorBoundary };
 // или собственный класс-компонент
 ```
@@ -613,6 +645,7 @@ export { ErrorBoundary };
 ### 5.5 Нет тестов
 
 В проекте нет ни одного теста (unit, integration, e2e). Минимальный набор:
+
 - Unit-тесты для `CardModel.clampRating`, `nextRatingByAnswer`, `shuffle`
 - Unit-тесты для CSV-парсера (критически важная логика)
 - Snapshot-тесты для ключевых компонентов
@@ -643,9 +676,11 @@ const simpleValue = useMemo(() => count + 1, [count]); // избыточно
 
 ```tsx
 // ❌ Неправильно — stale closure
-useFocusEffect(useCallback(() => {
-  loadCards();
-}, [])); // loadCards использует currentDictionaryId, но не в deps
+useFocusEffect(
+  useCallback(() => {
+    loadCards();
+  }, []),
+); // loadCards использует currentDictionaryId, но не в deps
 
 // ✅ Правильно
 const loadCards = useCallback(async () => {
@@ -654,9 +689,11 @@ const loadCards = useCallback(async () => {
   setCards(list);
 }, [currentDictionaryId]);
 
-useFocusEffect(useCallback(() => {
-  loadCards();
-}, [loadCards]));
+useFocusEffect(
+  useCallback(() => {
+    loadCards();
+  }, [loadCards]),
+);
 ```
 
 ### 6.3 `FlatList` — ключевые оптимизации
@@ -665,14 +702,14 @@ useFocusEffect(useCallback(() => {
 <FlatList
   data={visibleCards}
   keyExtractor={(item) => item.id.toString()} // ✅ уже есть
-  renderItem={renderCard}  // ✅ выносить renderItem за пределы JSX
-
+  renderItem={renderCard} // ✅ выносить renderItem за пределы JSX
   // Добавить:
-  removeClippedSubviews={true}        // освобождает память для невидимых элементов
-  maxToRenderPerBatch={10}            // контроль порций рендера
-  windowSize={10}                     // количество "экранов" в памяти
-  initialNumToRender={15}             // начальный рендер
-  getItemLayout={(_, index) => ({     // если высота фиксирована — большой буст
+  removeClippedSubviews={true} // освобождает память для невидимых элементов
+  maxToRenderPerBatch={10} // контроль порций рендера
+  windowSize={10} // количество "экранов" в памяти
+  initialNumToRender={15} // начальный рендер
+  getItemLayout={(_, index) => ({
+    // если высота фиксирована — большой буст
     length: CARD_HEIGHT,
     offset: CARD_HEIGHT * index,
     index,
@@ -694,11 +731,11 @@ const Card = React.memo(({ card, onDelete, onEdit, onPress }: CardProps) => {
 
 ```tsx
 // ❌ Создаёт новую функцию при каждом рендере
-<Button onPress={() => router.push('/quiz')} />
+<Button onPress={() => router.push("/quiz")} />;
 
 // ✅ Вынесите в useCallback
-const handleGoToQuiz = useCallback(() => router.push('/quiz'), []);
-<Button onPress={handleGoToQuiz} />
+const handleGoToQuiz = useCallback(() => router.push("/quiz"), []);
+<Button onPress={handleGoToQuiz} />;
 ```
 
 ### 6.6 `KeyboardAvoidingView` — правильное использование
@@ -732,7 +769,9 @@ const handleGoToQuiz = useCallback(() => router.push('/quiz'), []);
 
 ```tsx
 // ❌ Плохо
-const result = await db.getFirstAsync<any>('SELECT * FROM cards WHERE id = ?', [id]);
+const result = await db.getFirstAsync<any>("SELECT * FROM cards WHERE id = ?", [
+  id,
+]);
 
 // ✅ Хорошо — создайте тип для строки БД
 type CardRow = {
@@ -745,7 +784,10 @@ type CardRow = {
   dictionary_id: number;
   created_at: string;
 };
-const result = await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id = ?', [id]);
+const result = await db.getFirstAsync<CardRow>(
+  "SELECT * FROM cards WHERE id = ?",
+  [id],
+);
 ```
 
 ### 6.9 AsyncStorage для персистентных настроек
@@ -753,11 +795,11 @@ const result = await db.getFirstAsync<CardRow>('SELECT * FROM cards WHERE id = ?
 ```tsx
 // Любые пользовательские настройки (выбранный словарь, тема, режим) должны
 // сохраняться между сессиями через @react-native-async-storage/async-storage
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEYS = {
-  CURRENT_DICT: 'app:currentDictionaryId',
-  CURRENT_LANG: 'app:currentLanguageId',
+  CURRENT_DICT: "app:currentDictionaryId",
+  CURRENT_LANG: "app:currentLanguageId",
 } as const;
 ```
 
@@ -805,7 +847,11 @@ export function useCards(dictionaryId: number | null) {
     }
   }, [dictionaryId]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return { cards, loading, error, reload: load };
 }
@@ -871,4 +917,4 @@ if (card.rating === RATING.GOOD) ...
 
 ---
 
-*Этот файл сгенерирован в ходе код-ревью проекта. Обновляйте по мере исправления проблем.*
+_Этот файл сгенерирован в ходе код-ревью проекта. Обновляйте по мере исправления проблем._

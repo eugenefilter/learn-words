@@ -7,6 +7,8 @@ import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import { useAppContext } from '@/context/AppContext';
 import Button from '@/components/ui/Button';
+import { FLOATING_PANEL_GAP, QUIZ_CONTENT_BOTTOM_PADDING } from '@/constants/layout';
+import * as Haptics from 'expo-haptics';
 
 type QuizState = 'loading' | 'ready' | 'insufficient' | 'completed';
 
@@ -129,8 +131,13 @@ export default function QuizScreen() {
     const isCorrect = option === currentCard.translation;
     setAnswered(true);
 
-    if (isCorrect) setCorrectCount((prev) => prev + 1);
-    else setWrongCount((prev) => prev + 1);
+    if (isCorrect) {
+      setCorrectCount((prev) => prev + 1);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      setWrongCount((prev) => prev + 1);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
 
     await CardModel.updateRatingAfterAnswer(currentCard.id, isCorrect);
   }, [answered, currentCard, options.length]);
@@ -140,23 +147,25 @@ export default function QuizScreen() {
     return `${Math.min(currentIndex + 1, quizCards.length)}/${quizCards.length}`;
   }, [currentIndex, quizCards.length]);
 
-  const getOptionColors = (option: string) => {
-    if (!answered || !currentCard) {
-      return { backgroundColor: '#0e1c1c', borderColor: '#1e4747' };
+  const optionColors = useMemo(() => {
+    const neutral = { backgroundColor: '#0e1c1c', borderColor: '#1e4747' };
+    const map = new Map<string, { backgroundColor: string; borderColor: string }>();
+    for (const option of options) {
+      if (!answered || !currentCard) {
+        map.set(option, neutral);
+      } else if (selectedOption === option) {
+        map.set(option, option === currentCard.translation
+          ? { backgroundColor: '#166534', borderColor: '#22c55e' }
+          : { backgroundColor: '#991b1b', borderColor: '#ef4444' });
+      } else {
+        map.set(option, neutral);
+      }
     }
-
-    if (selectedOption === option) {
-      const isSelectedCorrect = option === currentCard.translation;
-      return isSelectedCorrect
-        ? { backgroundColor: '#166534', borderColor: '#22c55e' }
-        : { backgroundColor: '#991b1b', borderColor: '#ef4444' };
-    }
-
-    return { backgroundColor: '#0e1c1c', borderColor: '#1e4747' };
-  };
+    return map;
+  }, [options, answered, selectedOption, currentCard]);
 
   return (
-    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 156 }}>
+    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + QUIZ_CONTENT_BOTTOM_PADDING }}>
       <Text className='text-primary-100 text-2xl mb-2'>Квиз</Text>
       <Text className='text-primary-100 opacity-80 mb-4'>Текущий словарь. Выберите правильный перевод.</Text>
 
@@ -184,7 +193,7 @@ export default function QuizScreen() {
 
           <View className='gap-3'>
             {options.map((option) => {
-              const colors = getOptionColors(option);
+              const colors = optionColors.get(option);
               return (
                 <Pressable
                   key={option}
@@ -217,7 +226,7 @@ export default function QuizScreen() {
             position: 'absolute',
             left: 20,
             right: 20,
-            bottom: (tabBarHeight || 0) + insets.bottom + 12,
+            bottom: (tabBarHeight || 0) + insets.bottom + FLOATING_PANEL_GAP,
             zIndex: 20,
             elevation: 20,
           }}
