@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { initDatabase } from '@/database/database';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import '../global.css';
 import { AppProvider } from '@/context/AppContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -26,7 +27,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView className='flex-1 bg-primary-900'>
+      <StatusBar style='light' backgroundColor='#0b1616' />
+      <SafeAreaView className='flex-1' style={{ backgroundColor: '#0b1616' }}>
         <ErrorBoundary>
           <AppProvider>
             <Stack screenOptions={{ headerShown: false }}>

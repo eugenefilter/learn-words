@@ -7,10 +7,20 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 0,
+        },
         tabBarStyle: {
           backgroundColor: '#102222',
           borderTopWidth: 0,
           elevation: 0,
+          height: 62,
+          paddingTop: 6,
+          paddingBottom: 6,
           position: Platform.select({
             ios: 'absolute',
             default: 'relative',
