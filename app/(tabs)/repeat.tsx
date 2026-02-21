@@ -8,7 +8,6 @@ import { useAppContext } from '@/context/AppContext';
 import { CardModel } from '@/models/CardModel';
 import Button from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { FLOATING_PANEL_GAP } from '@/constants/layout';
 import { RATING_ICON, RATING_COLOR } from '@/constants/rating';
 import * as Haptics from 'expo-haptics';
 
@@ -102,7 +101,7 @@ export default function RepeatScreen() {
   return (
     <View
       className='flex-1 bg-primary-900 px-5 pt-6'
-      style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + FLOATING_PANEL_GAP }}
+      style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 8 }}
     >
       <Text className='text-primary-100 text-2xl mb-1'>Повтор</Text>
       <Text className='text-primary-100 opacity-60 text-sm mb-4'>
@@ -128,7 +127,7 @@ export default function RepeatScreen() {
       )}
 
       {!loading && card && (
-        <View className='flex-1'>
+        <View className='flex-1 pb-24'>
           <Text className='text-primary-100 opacity-40 text-sm mb-3'>
             {index + 1} / {cards.length}
           </Text>
@@ -185,6 +184,11 @@ export default function RepeatScreen() {
             )}
           </Pressable>
 
+        </View>
+      )}
+
+      {!loading && card && (
+        <View style={{ position: 'absolute', left: 20, right: 20, bottom: 8, zIndex: 20, elevation: 20 }}>
           {revealed ? (
             <View className='flex-row gap-3'>
               <Button title='Не знаю' onPress={() => handleAnswer(-1)} variant='danger' className='flex-1' />
