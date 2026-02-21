@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import DictionaryPicker from '@/components/library/DictionaryPicker';
+import theme from '@/constants/theme';
 
 type Lang = { id: number; name: string; code?: string | null };
 type Dict = { id: number; name: string; cardsCount?: number };
@@ -277,8 +278,8 @@ const LibraryScreen = () => {
           <Pressable className='absolute inset-0' onPress={() => setLangModal({ visible: false, mode: 'add', name: '' })} />
           <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5'>
             <Text className='text-primary-100 text-xl font-semibold mb-3'>{langModal.mode==='add'?'Новый язык':'Переименовать язык'}</Text>
-            <TextInput className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200 mb-2' value={langModal.name} onChangeText={(t) => setLangModal(prev => ({ ...prev, name: t }))} placeholder='Например: English' placeholderTextColor={'#9fbfbf'} />
-            <TextInput className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200 mb-2' value={langModal.code} onChangeText={(t) => setLangModal(prev => ({ ...prev, code: t }))} placeholder='Код (en, de, es...)' placeholderTextColor={'#9fbfbf'} />
+            <TextInput className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200 mb-2' value={langModal.name} onChangeText={(t) => setLangModal(prev => ({ ...prev, name: t }))} placeholder='Например: English' placeholderTextColor={theme.colors.textMuted} />
+            <TextInput className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200 mb-2' value={langModal.code} onChangeText={(t) => setLangModal(prev => ({ ...prev, code: t }))} placeholder='Код (en, de, es...)' placeholderTextColor={theme.colors.textMuted} />
             <View className='flex-row gap-3 mt-3'>
               <View className='flex-1'><Button title='Отмена' variant='secondary' onPress={() => setLangModal({ visible: false, mode: 'add', name: '' })} /></View>
               <View className='flex-1'><Button title='Сохранить' onPress={saveLanguage} /></View>
@@ -295,7 +296,7 @@ const LibraryScreen = () => {
           <Pressable className='absolute inset-0' onPress={() => setDictModal({ visible: false, mode: 'add', name: '' })} />
           <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5'>
             <Text className='text-primary-100 text-xl font-semibold mb-3'>{dictModal.mode==='add'?'Новый словарь':'Переименовать словарь'}</Text>
-            <TextInput className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200 mb-2' value={dictModal.name} onChangeText={(t) => setDictModal(prev => ({ ...prev, name: t }))} placeholder='Например: Мой словарь' placeholderTextColor={'#9fbfbf'} />
+            <TextInput className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200 mb-2' value={dictModal.name} onChangeText={(t) => setDictModal(prev => ({ ...prev, name: t }))} placeholder='Например: Мой словарь' placeholderTextColor={theme.colors.textMuted} />
             <View className='flex-row gap-3 mt-3'>
               <View className='flex-1'><Button title='Отмена' variant='secondary' onPress={() => setDictModal({ visible: false, mode: 'add', name: '' })} /></View>
               <View className='flex-1'><Button title='Сохранить' onPress={saveDict} /></View>
@@ -367,7 +368,7 @@ const LibraryScreen = () => {
               value={importModal.text}
               onChangeText={(t) => setImportModal(prev => ({ ...prev, text: t }))}
               placeholder='Вставьте CSV...'
-              placeholderTextColor={'#9fbfbf'}
+              placeholderTextColor={theme.colors.textMuted}
             />
             <View className='flex-row gap-3 mt-3'>
               <View className='flex-1'><Button title='Отмена' variant='secondary' onPress={() => setImportModal({ visible: false, text: '' })} /></View>
