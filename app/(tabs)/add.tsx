@@ -4,20 +4,16 @@ import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import Toast from '@/components/ui/Toast';
 import { useAppContext } from '@/context/AppContext';
 import DictionaryPicker from '@/components/library/DictionaryPicker';
 import { DictionaryModel } from '@/models/DictionaryModel';
-import { CONTENT_BOTTOM_PADDING, FLOATING_PANEL_GAP } from '@/constants/layout';
+import { CONTENT_BOTTOM_PADDING } from '@/constants/layout';
 
 
 export default function AddCard() {
-  const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
   const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
   const [dictionaryName, setDictionaryName] = useState<string>('');
   const [word, setWord] = useState('');
@@ -116,7 +112,7 @@ export default function AddCard() {
 
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View className='flex-1 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + CONTENT_BOTTOM_PADDING }}>
+      <View className='flex-1 px-5 pt-6' style={{ paddingBottom: CONTENT_BOTTOM_PADDING }}>
         <View>
           <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
             <Text className='text-primary-100'>Словарь: {dictionaryName || (currentDictionaryId ? `#${currentDictionaryId}` : 'не выбран')}</Text>
@@ -153,7 +149,7 @@ export default function AddCard() {
           />
         </View>
       </View>
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: (tabBarHeight || 0) + insets.bottom + FLOATING_PANEL_GAP, zIndex: 20, elevation: 20 }}>
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: 8, zIndex: 20, elevation: 20 }}>
         <Button title={saving ? 'Сохранение…' : 'Сохранить'} disabled={saving} onPress={() => save()} className='w-full' />
       </View>
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, FlatList, Pressable, TextInput } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useAppContext } from '@/context/AppContext';
 import { DictionaryModel } from '@/models/DictionaryModel';
 import Button from '@/components/ui/Button';
@@ -36,7 +37,9 @@ const DictionaryPicker: React.FC<DictionaryPickerProps> = ({ visible, onClose, o
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className='flex-1 items-center justify-center bg-black/50 px-5'>
+      <View className='flex-1 items-center justify-center px-5'>
+        <BlurView intensity={35} tint='dark' className='absolute inset-0' />
+        <View className='absolute inset-0 bg-black/35' />
         <Pressable className='absolute inset-0' onPress={onClose} />
         <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5 max-h-[70%]'>
           <Text className='text-primary-100 text-xl font-semibold mb-3'>Выберите словарь</Text>
@@ -82,4 +85,3 @@ const DictionaryPicker: React.FC<DictionaryPickerProps> = ({ visible, onClose, o
 };
 
 export default DictionaryPicker;
-

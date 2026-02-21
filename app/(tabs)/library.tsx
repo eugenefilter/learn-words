@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, Modal, TextInput, ScrollView } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 import { LanguageModel } from '@/models/LanguageModel';
@@ -270,7 +271,9 @@ const LibraryScreen = () => {
 
       {/* Language modal */}
       <Modal visible={langModal.visible} transparent animationType='fade' onRequestClose={() => setLangModal({ visible: false, mode: 'add', name: '' })}>
-        <View className='flex-1 items-center justify-center bg-black/50 px-5'>
+        <View className='flex-1 items-center justify-center px-5'>
+          <BlurView intensity={35} tint='dark' className='absolute inset-0' />
+          <View className='absolute inset-0 bg-black/35' />
           <Pressable className='absolute inset-0' onPress={() => setLangModal({ visible: false, mode: 'add', name: '' })} />
           <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5'>
             <Text className='text-primary-100 text-xl font-semibold mb-3'>{langModal.mode==='add'?'Новый язык':'Переименовать язык'}</Text>
@@ -286,7 +289,9 @@ const LibraryScreen = () => {
 
       {/* Dict modal */}
       <Modal visible={dictModal.visible} transparent animationType='fade' onRequestClose={() => setDictModal({ visible: false, mode: 'add', name: '' })}>
-        <View className='flex-1 items-center justify-center bg-black/50 px-5'>
+        <View className='flex-1 items-center justify-center px-5'>
+          <BlurView intensity={35} tint='dark' className='absolute inset-0' />
+          <View className='absolute inset-0 bg-black/35' />
           <Pressable className='absolute inset-0' onPress={() => setDictModal({ visible: false, mode: 'add', name: '' })} />
           <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5'>
             <Text className='text-primary-100 text-xl font-semibold mb-3'>{dictModal.mode==='add'?'Новый словарь':'Переименовать словарь'}</Text>
@@ -330,7 +335,9 @@ const LibraryScreen = () => {
 
       {/* Export modal */}
       <Modal visible={exportModal.visible} transparent animationType='fade' onRequestClose={() => setExportModal({ visible: false, csv: '' })}>
-        <View className='flex-1 items-center justify-center bg-black/50 px-5'>
+        <View className='flex-1 items-center justify-center px-5'>
+          <BlurView intensity={35} tint='dark' className='absolute inset-0' />
+          <View className='absolute inset-0 bg-black/35' />
           <Pressable className='absolute inset-0' onPress={() => setExportModal({ visible: false, csv: '' })} />
           <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5 max-h-[80%]'>
             <Text className='text-primary-100 text-xl font-semibold mb-3'>Экспорт CSV</Text>
@@ -346,7 +353,9 @@ const LibraryScreen = () => {
 
       {/* Import modal */}
       <Modal visible={importModal.visible} transparent animationType='fade' onRequestClose={() => setImportModal({ visible: false, text: '' })}>
-        <View className='flex-1 items-center justify-center bg-black/50 px-5'>
+        <View className='flex-1 items-center justify-center px-5'>
+          <BlurView intensity={35} tint='dark' className='absolute inset-0' />
+          <View className='absolute inset-0 bg-black/35' />
           <Pressable className='absolute inset-0' onPress={() => setImportModal({ visible: false, text: '' })} />
           <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5 max-h-[80%]'>
             <Text className='text-primary-100 text-xl font-semibold mb-3'>Импорт CSV</Text>

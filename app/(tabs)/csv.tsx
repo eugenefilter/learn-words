@@ -52,6 +52,7 @@ const CsvScreen: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success'|'error'|'info'>('info');
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const bottomInset = (tabBarHeight || 0) + insets.bottom + 12;
 
@@ -342,23 +343,19 @@ const CsvScreen: React.FC = () => {
         </View>
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
-          <Text className='text-primary-100 text-lg mb-2'>Импорт (Excel/CSV)</Text>
-
-          <View className='mb-3 rounded-xl border border-primary-300 px-3 py-3 bg-primary-900'>
-            <Text className='text-primary-100 text-xs mb-1'>Как подготовить данные:</Text>
-            <Text className='text-primary-100 opacity-80 text-xs'>1. Колонки по порядку: word, translation, transcription, rating, examples</Text>
-            <Text className='text-primary-100 opacity-80 text-xs'>2. Обязательные: word и translation</Text>
-            <Text className='text-primary-100 opacity-80 text-xs'>3. examples: несколько примеров через ;</Text>
-            <Text className='text-primary-100 opacity-80 text-xs'>4. rating: 0..2 (если пусто, будет 0)</Text>
-            <Text className='text-primary-100 opacity-80 text-xs mt-1'>Можно вставлять прямо из Excel (таблицу), CSV и TSV поддерживаются.</Text>
+          <View className='flex-row items-center justify-between mb-2'>
+            <Text className='text-primary-100 text-lg'>Импорт (Excel/CSV)</Text>
+            <Pressable onPress={() => setHelpVisible(true)} className='w-8 h-8 rounded-full border border-primary-300 items-center justify-center'>
+              <Text className='text-primary-100 text-base font-semibold'>i</Text>
+            </Pressable>
           </View>
 
           <View className='flex-row gap-3 mb-2'>
             <View className='flex-1'>
-              <Button title='Скачать шаблон CSV' onPress={downloadTemplate} />
+              <Button title='Скачать шаблон CSV' onPress={downloadTemplate} className='h-14' />
             </View>
             <View className='flex-1'>
-              <Button title='Выбрать файл' onPress={pickCsvFile} />
+              <Button title='Выбрать файл' onPress={pickCsvFile} className='h-14' />
             </View>
           </View>
 
@@ -388,8 +385,8 @@ const CsvScreen: React.FC = () => {
           />
 
           <View className='flex-row gap-3 mt-3'>
-            <View className='flex-1'><Button title='Проверить' variant='secondary' onPress={() => analyzeImport()} /></View>
-            <View className='flex-1'><Button title={importing ? 'Импорт...' : 'Импортировать'} disabled={importing} onPress={() => setConfirmVisible(true)} /></View>
+            <View className='flex-1'><Button title='Проверить' variant='secondary' onPress={() => analyzeImport()} className='h-14' /></View>
+            <View className='flex-1'><Button title={importing ? 'Импорт...' : 'Импортировать'} disabled={importing} onPress={() => setConfirmVisible(true)} className='h-14' /></View>
           </View>
 
           {importStats && (
@@ -428,6 +425,16 @@ const CsvScreen: React.FC = () => {
         cancelText='Отмена'
         onCancel={() => setConfirmVisible(false)}
         onConfirm={performImport}
+      />
+
+      <ConfirmDialog
+        visible={helpVisible}
+        title='Как подготовить данные'
+        message={'1. Колонки по порядку: word, translation, transcription, rating, examples\n2. Обязательные: word и translation\n3. examples: несколько примеров через ;\n4. rating: 0..2 (если пусто, будет 0)\n\nМожно вставлять прямо из Excel (таблицу), CSV и TSV поддерживаются.'}
+        confirmText='Понятно'
+        showCancel={false}
+        onCancel={() => setHelpVisible(false)}
+        onConfirm={() => setHelpVisible(false)}
       />
 
       <Toast visible={toastVisible} message={toastMessage} type={toastType} position='top' onHide={() => setToastVisible(false)} />

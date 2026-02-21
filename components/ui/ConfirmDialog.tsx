@@ -1,5 +1,6 @@
 import React from 'react'
 import { Modal, View, Text, Pressable } from 'react-native'
+import { BlurView } from 'expo-blur'
 import Button from './Button'
 
 type ConfirmDialogProps = {
@@ -25,7 +26,9 @@ const ConfirmDialog = ({
 }: ConfirmDialogProps) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className='flex-1 items-center justify-center bg-black/50 px-5'>
+      <View className='flex-1 items-center justify-center px-5'>
+        <BlurView intensity={35} tint='dark' className='absolute inset-0' />
+        <View className='absolute inset-0 bg-black/35' />
         <Pressable className='absolute inset-0' onPress={onCancel} />
         <View className='w-full rounded-2xl bg-primary-800 border border-primary-200 p-5'>
           <Text className='text-primary-100 text-xl font-semibold mb-2'>{title}</Text>
