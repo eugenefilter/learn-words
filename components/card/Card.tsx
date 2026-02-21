@@ -27,60 +27,61 @@ const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
   }
 
   const renderLeftActions = () => (
-    <View className='flex-1 my-2 px-[4%]'>
+    <View style={{ width: '25%' }}>
       <Pressable
         onPress={handleEdit}
-        className='h-full rounded-xl bg-primary-300 items-start justify-center pl-6'
+        className='h-full items-center justify-center bg-primary-300'
+        style={{ width: '100%' }}
       >
-        <View className='flex-row items-center gap-2'>
-          <Pencil color='#d9ebeb' size={22} />
-          <Text className='text-primary-100 text-lg font-semibold'>Редактировать</Text>
-        </View>
+        <Pencil color='#d9ebeb' size={24} />
       </Pressable>
     </View>
   )
 
   const renderRightActions = () => (
-    <View className='flex-1 my-2 px-[4%]'>
+    <View style={{ width: '25%' }}>
       <Pressable
         onPress={handleDelete}
-        className='h-full rounded-xl bg-red-500 items-end justify-center pr-6'
+        className='h-full items-center justify-center bg-red-500'
+        style={{ width: '100%' }}
       >
-        <View className='flex-row items-center gap-2'>
-          <Text className='text-white text-lg font-semibold'>Удалить</Text>
-          <Trash color='#ffffff' size={22} />
-        </View>
+        <Trash color='#ffffff' size={24} />
       </Pressable>
     </View>
   )
 
   return (
-    <Swipeable
-      ref={swipeableRef}
-      renderLeftActions={renderLeftActions}
-      renderRightActions={renderRightActions}
-      leftThreshold={48}
-      rightThreshold={48}
-      overshootLeft={false}
-      overshootRight={false}
-    >
-      <Pressable onPress={onPress} className='w-[92%] mx-auto my-2 rounded-xl px-5 py-2.5 flex flex-col bg-primary-800 border border-primary-200'>
-        <View className='flex-row items-start justify-between'>
-          <View className='flex-1 pr-3'>
-            <Text className="text-left text-primary-100 uppercase" style={{ fontSize: 14, lineHeight: 18 }}>
-              {card.word}
-            </Text>
-            <Text className="text-primary-100 opacity-90 mt-1" style={{ fontSize: 14, lineHeight: 18 }}>
-              {[card.translation, card.transcription].filter(Boolean).join(' / ')}
-            </Text>
-          </View>
+    <View className='w-[92%] mx-auto my-2 rounded-xl overflow-hidden border border-primary-200 bg-primary-800'>
+      <Swipeable
+        ref={swipeableRef}
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
+        leftThreshold={24}
+        rightThreshold={24}
+        overshootLeft={false}
+        overshootRight={false}
+      >
+        <Pressable
+          onPress={onPress}
+          className='w-full px-5 py-2.5 flex flex-col bg-primary-800'
+        >
+          <View className='flex-row items-start justify-between'>
+            <View className='flex-1 pr-3'>
+              <Text className="text-left text-primary-100 uppercase" style={{ fontSize: 14, lineHeight: 18 }}>
+                {card.word}
+              </Text>
+              <Text className="text-primary-100 opacity-90 mt-1" style={{ fontSize: 14, lineHeight: 18 }}>
+                {[card.translation, card.transcription].filter(Boolean).join(' / ')}
+              </Text>
+            </View>
 
-          <View className='ml-2 mt-0.5'>
-            <RatingProgress rating={rating} />
+            <View className='ml-2 mt-0.5'>
+              <RatingProgress rating={rating} />
+            </View>
           </View>
-        </View>
-      </Pressable>
-    </Swipeable>
+        </Pressable>
+      </Swipeable>
+    </View>
   )
 }
 
