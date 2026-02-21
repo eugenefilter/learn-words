@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, Pressable, Share } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, Pressable, Share, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useAppContext } from '@/context/AppContext';
@@ -27,6 +27,7 @@ type ParseResult = {
 };
 
 const CsvScreen: React.FC = () => {
+  const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
@@ -54,7 +55,8 @@ const CsvScreen: React.FC = () => {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
 
-  const bottomInset = (tabBarHeight || 0) + insets.bottom + 12;
+  const bottomInset = (tabBarHeight || 0) + insets.bottom + 8;
+  const importInputHeight = Math.max(120, Math.min(180, Math.round(height * 0.22)));
 
   const parseDelimitedLine = (line: string, delimiter: string): string[] => {
     const result: string[] = [];
@@ -330,19 +332,19 @@ const CsvScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ paddingBottom: bottomInset }} className='flex-1 px-5 pt-6'>
-        <Pressable onPress={() => setPickerVisible(true)} className='mb-4 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
+      <ScrollView contentContainerStyle={{ paddingBottom: bottomInset, flexGrow: 1 }} className='flex-1 px-4 pt-4'>
+        <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
           <Text className='text-primary-100'>Словарь для импорта/экспорта: {currentDictionaryId ? `#${currentDictionaryId}` : 'не выбран'}</Text>
           <Text className='text-primary-100 opacity-80 text-xs mt-1'>Нажмите, чтобы выбрать существующий или создать новый</Text>
         </Pressable>
 
-        <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
+        <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-3'>
           <Text className='text-primary-100 text-lg mb-2'>Экспорт</Text>
           <Button title={saving ? 'Сохранение…' : 'Экспорт в файл'} disabled={saving} onPress={exportToFile} />
-          <Text className='text-primary-100 opacity-80 mt-3 text-xs'>Формат: word, translation, transcription, rating, examples</Text>
+          <Text className='text-primary-100 opacity-80 mt-2 text-xs'>Формат: word, translation, transcription, rating, examples</Text>
         </View>
 
-        <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-5'>
+        <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-3'>
           <View className='flex-row items-center justify-between mb-2'>
             <Text className='text-primary-100 text-lg'>Импорт (Excel/CSV)</Text>
             <Pressable onPress={() => setHelpVisible(true)} className='w-8 h-8 rounded-full border border-primary-300 items-center justify-center'>
@@ -350,7 +352,7 @@ const CsvScreen: React.FC = () => {
             </Pressable>
           </View>
 
-          <View className='flex-row gap-3 mb-2'>
+          <View className='flex-row gap-3 mb-3'>
             <View className='flex-1'>
               <Button title='Скачать шаблон CSV' onPress={downloadTemplate} className='h-14' />
             </View>
@@ -359,7 +361,7 @@ const CsvScreen: React.FC = () => {
             </View>
           </View>
 
-          <View className='flex-row gap-2 mb-2'>
+          <View className='flex-row gap-2 mb-3'>
             <Pressable onPress={() => setDedupeMode('word')} className={`px-3 py-2 rounded-xl border ${dedupeMode==='word' ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
               <Text className='text-primary-100 text-xs'>Дедуп: слово</Text>
             </Pressable>
@@ -370,7 +372,7 @@ const CsvScreen: React.FC = () => {
 
           <TextInput
             className='w-full p-3 text-white rounded-xl bg-primary-300 border border-primary-200'
-            style={{ minHeight: 180, textAlignVertical: 'top' }}
+            style={{ minHeight: importInputHeight, textAlignVertical: 'top' }}
             multiline
             value={importText}
             onChangeText={(value) => {
@@ -384,7 +386,7 @@ const CsvScreen: React.FC = () => {
             placeholderTextColor={'#9fbfbf'}
           />
 
-          <View className='flex-row gap-3 mt-3'>
+          <View className='flex-row gap-3 mt-2'>
             <View className='flex-1'><Button title='Проверить' variant='secondary' onPress={() => analyzeImport()} className='h-14' /></View>
             <View className='flex-1'><Button title={importing ? 'Импорт...' : 'Импортировать'} disabled={importing} onPress={() => setConfirmVisible(true)} className='h-14' /></View>
           </View>
@@ -396,7 +398,7 @@ const CsvScreen: React.FC = () => {
           )}
 
           {previewRows.length > 0 && (
-            <View className='mt-3 rounded-xl border border-primary-300 p-3 bg-primary-900'>
+            <View className='mt-2 rounded-xl border border-primary-300 p-3 bg-primary-900'>
               <Text className='text-primary-100 text-xs mb-2'>Превью первых строк:</Text>
               {previewRows.map((row, index) => (
                 <Text key={`${row.word}-${row.translation}-${index}`} className='text-primary-100 opacity-80 text-xs mb-1'>

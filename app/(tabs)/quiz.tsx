@@ -7,7 +7,7 @@ import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import { useAppContext } from '@/context/AppContext';
 import Button from '@/components/ui/Button';
-import { FLOATING_PANEL_GAP, QUIZ_CONTENT_BOTTOM_PADDING } from '@/constants/layout';
+import { QUIZ_CONTENT_BOTTOM_PADDING } from '@/constants/layout';
 import * as Haptics from 'expo-haptics';
 
 type QuizState = 'loading' | 'ready' | 'insufficient' | 'completed';
@@ -229,7 +229,7 @@ export default function QuizScreen() {
             position: 'absolute',
             left: 20,
             right: 20,
-            bottom: (tabBarHeight || 0) + insets.bottom + FLOATING_PANEL_GAP,
+            bottom: 8,
             zIndex: 20,
             elevation: 20,
           }}
