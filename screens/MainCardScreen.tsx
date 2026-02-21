@@ -5,7 +5,6 @@ import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import FlipCardNavigator from '@/components/card/FlipCardNavigator';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAppContext } from '@/context/AppContext'
@@ -13,7 +12,6 @@ import EmptyState from '@/components/ui/EmptyState'
 import * as Haptics from 'expo-haptics'
 
 const MainCardScreen = () => {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { currentDictionaryId } = useAppContext();
   const [search, setSearch] = useState('')
@@ -155,7 +153,7 @@ const MainCardScreen = () => {
       />
 
       {card && (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 70 }} className='px-4'>
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 8 }} className='px-4'>
           <View className='flex-row items-center justify-between gap-4'>
             <Pressable 
               onPress={handleSwipeLeft} 

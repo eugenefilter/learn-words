@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
-import { useState, useCallback, useEffect } from 'react'
-import { View, Text, Pressable, FlatList, ScrollView, ActivityIndicator } from 'react-native'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Animated } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/Card'
@@ -12,8 +12,12 @@ import { useAppContext } from '@/context/AppContext'
 import { LanguageModel } from '@/models/LanguageModel'
 import { DictionaryModel } from '@/models/DictionaryModel'
 import EmptyState from '@/components/ui/EmptyState'
+
+const HEADER_HEIGHT = 190
+
 const CardListScreen = () => {
   const router = useRouter()
+  const scrollY = useRef(new Animated.Value(0)).current
   const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext()
   const [cards, setCards] = useState<TCard[]>([])
   const [visibleCards, setVisibleCards] = useState<TCard[]>([])
@@ -119,61 +123,79 @@ const CardListScreen = () => {
     setSortMode(prev => prev === 'none' ? 'asc' : prev === 'asc' ? 'desc' : 'none')
   }
 
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT],
+    extrapolate: 'clamp',
+  })
+
   return (
     <View className='flex-1 bg-primary-900'>
-      <View className='px-4 pt-2'>
-        <View className='flex-row items-center justify-between mb-2'>
-          <Text className='text-primary-100 text-lg'>Список</Text>
-          <View className='flex-row gap-2'>
-            <Pressable onPress={() => router.push('/quiz')} className='px-3 py-2 rounded-xl border border-primary-300'>
-              <Text className='text-primary-100 text-xs'>QUIZ</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
-              <Text className='text-primary-100 text-xs'>CSV</Text>
-            </Pressable>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          zIndex: 20,
+          transform: [{ translateY: headerTranslateY }],
+        }}
+      >
+        <View className='bg-primary-900'>
+          <View className='px-4 pt-6'>
+            <View className='flex-row items-center justify-between mb-2'>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, maxWidth: '62%' }}>
+                <View className='flex-row gap-2'>
+                  {dicts.map(d => (
+                    <Pressable key={d.id} onPress={() => setCurrentDictionaryId(d.id)} className={`px-3 py-2 rounded-xl border ${currentDictionaryId===d.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                      <Text className='text-primary-100 text-xs'>{d.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+              <View className='flex-row gap-2'>
+                <Pressable onPress={() => router.push('/quiz')} className='px-3 py-2 rounded-xl border border-primary-300'>
+                  <Text className='text-primary-100 text-xs'>QUIZ</Text>
+                </Pressable>
+                <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
+                  <Text className='text-primary-100 text-xs'>CSV</Text>
+                </Pressable>
+              </View>
+            </View>
           </View>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mt-2'>
-          <View className='flex-row gap-2'>
-            {dicts.map(d => (
-              <Pressable key={d.id} onPress={() => setCurrentDictionaryId(d.id)} className={`px-3 py-2 rounded-xl border ${currentDictionaryId===d.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                <Text className='text-primary-100 text-xs'>{d.name}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-      <SearchInput 
-        value={search}
-        placeholder="Search word ..."
-        onChangeText={setSearch}
-      />
+          <SearchInput
+            value={search}
+            placeholder="Search word ..."
+            onChangeText={setSearch}
+          />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mt-2 px-4' style={{ flexGrow: 0 }}>
-        <View className='flex-row gap-2'>
-          <Pressable onPress={cycleSort} className='px-3 py-2 rounded-xl border border-primary-300'>
-            <Text className='text-primary-100'>Сортировка: {sortMode === 'none' ? 'выкл' : sortMode === 'asc' ? 'по возр.' : 'по убыв.'}</Text>
-          </Pressable>
-          <Pressable onPress={() => toggleRatingHidden(0)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(0) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-            <Text className='text-primary-100'>Не знаю</Text>
-          </Pressable>
-          <Pressable onPress={() => toggleRatingHidden(1)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(1) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-            <Text className='text-primary-100'>Плохо</Text>
-          </Pressable>
-          <Pressable onPress={() => toggleRatingHidden(2)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(2) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-            <Text className='text-primary-100'>Хорошо</Text>
-          </Pressable>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mt-2 px-4' style={{ flexGrow: 0 }}>
+            <View className='flex-row gap-2 pb-2'>
+              <Pressable onPress={cycleSort} className='px-3 py-2 rounded-xl border border-primary-300'>
+                <Text className='text-primary-100'>Сортировка: {sortMode === 'none' ? 'выкл' : sortMode === 'asc' ? 'по возр.' : 'по убыв.'}</Text>
+              </Pressable>
+              <Pressable onPress={() => toggleRatingHidden(0)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(0) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100'>Не знаю</Text>
+              </Pressable>
+              <Pressable onPress={() => toggleRatingHidden(1)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(1) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100'>Плохо</Text>
+              </Pressable>
+              <Pressable onPress={() => toggleRatingHidden(2)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(2) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100'>Хорошо</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
+      </Animated.View>
 
       {loading ? (
-        <View className='flex-1 items-center justify-center'>
+        <View className='flex-1 items-center justify-center' style={{ paddingTop: HEADER_HEIGHT }}>
           <ActivityIndicator size='large' color='#d9ebeb' />
         </View>
       ) : (
-      <FlatList
+      <Animated.FlatList
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
+        contentContainerStyle={{ paddingTop: HEADER_HEIGHT, paddingBottom: 16, flexGrow: 1 }}
         data={visibleCards}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
@@ -188,6 +210,11 @@ const CardListScreen = () => {
         maxToRenderPerBatch={10}
         windowSize={10}
         initialNumToRender={15}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <EmptyState
             icon='tray'
