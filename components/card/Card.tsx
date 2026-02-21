@@ -1,5 +1,5 @@
 import { View, Text, Pressable } from 'react-native'
-import React, { FC, memo, useRef } from 'react'
+import React, { FC, memo } from 'react'
 import { Pencil, Trash } from 'lucide-react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { TCard } from '@/types/TCard'
@@ -14,15 +14,12 @@ interface ICardProps {
 
 const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
   const rating = card.rating ?? 0
-  const swipeableRef = useRef<Swipeable | null>(null)
 
   const handleEdit = () => {
-    swipeableRef.current?.close()
     onEdit(card.id)
   }
 
   const handleDelete = () => {
-    swipeableRef.current?.close()
     onDelete(card.id)
   }
 
@@ -53,7 +50,6 @@ const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
   return (
     <View className='w-[92%] mx-auto my-2 rounded-xl overflow-hidden border border-primary-200 bg-primary-800'>
       <Swipeable
-        ref={swipeableRef}
         renderLeftActions={renderLeftActions}
         renderRightActions={renderRightActions}
         leftThreshold={24}

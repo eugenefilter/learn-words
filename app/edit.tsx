@@ -124,15 +124,15 @@ export default function EditCard() {
         <View className='mt-5 border-t border-primary-200 pt-4'>
           <Text className='text-primary-100 opacity-90 mb-2'>Уровень знания:</Text>
           <View className='flex-row gap-3'>
-            <Pressable onPress={() => setRating(0)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===0 ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-              <IconSymbol name="battery.0" color={rating===0 ? '#22c55e' : '#d9ebeb'} size={20} />
+            <Pressable onPress={() => setRating(0)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===0 ? 'bg-primary-700 border-red-500' : 'border-primary-300'}`}>
+              <IconSymbol name="battery.0" color={rating===0 ? '#ef4444' : '#d9ebeb'} size={20} />
               <Text className='text-primary-100'>Не знаю</Text>
             </Pressable>
-            <Pressable onPress={() => setRating(1)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===1 ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-              <IconSymbol name="battery.50" color={rating===1 ? '#22c55e' : '#d9ebeb'} size={20} />
+            <Pressable onPress={() => setRating(1)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===1 ? 'bg-primary-700 border-amber-400' : 'border-primary-300'}`}>
+              <IconSymbol name="battery.50" color={rating===1 ? '#f59e0b' : '#d9ebeb'} size={20} />
               <Text className='text-primary-100'>Плохо</Text>
             </Pressable>
-            <Pressable onPress={() => setRating(2)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===2 ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+            <Pressable onPress={() => setRating(2)} className={`flex-row items-center gap-2 px-3 py-2 rounded-xl border ${rating===2 ? 'bg-primary-700 border-green-500' : 'border-primary-300'}`}>
               <IconSymbol name="battery.100" color={rating===2 ? '#22c55e' : '#d9ebeb'} size={20} />
               <Text className='text-primary-100'>Хорошо</Text>
             </Pressable>
