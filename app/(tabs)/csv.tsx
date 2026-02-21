@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { CardModel } from '@/models/CardModel';
+import theme from '@/constants/theme';
 
 type DedupeMode = 'word' | 'word+translation';
 
@@ -383,7 +384,7 @@ const CsvScreen: React.FC = () => {
               setDetectedHeader(false);
             }}
             placeholder='Вставьте данные из Excel/CSV сюда...'
-            placeholderTextColor={'#9fbfbf'}
+            placeholderTextColor={theme.colors.textMuted}
           />
 
           <View className='flex-row gap-3 mt-2'>

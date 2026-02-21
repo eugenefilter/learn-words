@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
+import theme from '@/constants/theme';
 
 type RatingProgressProps = {
   rating: number;
@@ -7,9 +8,9 @@ type RatingProgressProps = {
 };
 
 const colorByRating = (rating: number): string => {
-  if (rating >= 2) return '#22c55e';
-  if (rating === 1) return '#facc15';
-  return '#ef4444';
+  if (rating >= 2) return theme.colors.success;
+  if (rating === 1) return theme.colors.warning;
+  return theme.colors.danger;
 };
 
 const progressByRating = (rating: number): number => {

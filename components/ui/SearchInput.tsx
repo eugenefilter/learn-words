@@ -1,6 +1,7 @@
 import { View } from 'react-native'
 import { IconSymbol } from './IconSymbol';
 import Input from './Input';
+import theme from '@/constants/theme';
 
 type CustomTextInputProps = {
   value: string;
@@ -22,7 +23,7 @@ const SearchInput = ({
         value={value}
         placeholder={placeholder}
         onChangeText={onChangeText}
-        placeholderTextColor='#9fbfbf'
+        placeholderTextColor={theme.colors.textMuted}
       />      
     </View>
   )

@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 import { AppProvider } from '@/context/AppContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import theme from '@/constants/theme';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -29,8 +30,8 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style='light' backgroundColor='#0b1616' />
-        <SafeAreaView className='flex-1' style={{ backgroundColor: '#0b1616' }}>
+        <StatusBar style='light' backgroundColor={theme.colors.background} />
+        <SafeAreaView className='flex-1' style={{ backgroundColor: theme.colors.background }}>
           <ErrorBoundary>
             <AppProvider>
               <Stack screenOptions={{ headerShown: false }}>

@@ -1,3 +1,5 @@
+const theme = require('./constants/theme');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -9,17 +11,17 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#0b1616",
-          100: "#d9ebeb", // light text on dark bg
-          200: "#1e4747", // borders / subtle lines
-          300: "#143434", // surfaces / inputs
-          800: "#0e1c1c", // cards
-          900: "#0b1616"  // app background
+          DEFAULT: theme.colors.background,
+          100: theme.colors.text,
+          200: theme.colors.border,
+          300: theme.colors.surfaceAlt,
+          800: theme.colors.surface,
+          900: theme.colors.background
         },
         accent: {
-          500: "#2dd4bf",
-          600: "#14b8a6",
-          700: "#0d9488"
+          500: theme.colors.accent500,
+          600: theme.colors.accent600,
+          700: theme.colors.accent700
         }
 
       },

@@ -1,3 +1,5 @@
+import theme from '@/constants/theme';
+
 export const RATING = {
   NONE: 0,
   BAD: 1,
@@ -11,7 +13,7 @@ export const RATING_ICON: Record<number, string> = {
 };
 
 export const RATING_COLOR: Record<number, string> = {
-  [RATING.NONE]: '#ef4444',
-  [RATING.BAD]:  '#f59e0b',
-  [RATING.GOOD]: '#22c55e',
+  [RATING.NONE]: theme.colors.danger,
+  [RATING.BAD]:  theme.colors.warning,
+  [RATING.GOOD]: theme.colors.success,
 };

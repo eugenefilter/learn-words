@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useAppContext } from '@/context/AppContext';
 import { DictionaryModel } from '@/models/DictionaryModel';
 import Button from '@/components/ui/Button';
+import theme from '@/constants/theme';
 
 type DictionaryPickerProps = {
   visible: boolean;
@@ -62,7 +63,7 @@ const DictionaryPicker: React.FC<DictionaryPickerProps> = ({ visible, onClose, o
                 value={newName}
                 onChangeText={setNewName}
                 placeholder='Например: Фразовые глаголы'
-                placeholderTextColor={'#9fbfbf'}
+                placeholderTextColor={theme.colors.textMuted}
               />
               <View className='flex-row gap-3 mt-3'>
                 <View className='flex-1'>

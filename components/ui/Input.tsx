@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { TextInput } from 'react-native'
+import theme from '@/constants/theme';
 
 type CustomTextInputProps = {
   value: string;
@@ -28,7 +29,7 @@ const Input = ({
       value={value}
       placeholder={placeholder}
       onChangeText={onChangeText}
-      placeholderTextColor={props.placeholderTextColor ?? '#9fbfbf'}
+      placeholderTextColor={props.placeholderTextColor ?? theme.colors.textMuted}
       {...props}
     />
   )

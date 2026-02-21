@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
+import theme from '@/constants/theme';
 
 type Props = { children: React.ReactNode };
 type State = { error: Error | null };
@@ -16,14 +17,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#102222', padding: 24 }}>
-          <Text style={{ color: '#ef4444', fontSize: 20, marginBottom: 8 }}>Что-то пошло не так</Text>
-          <Text style={{ color: '#d9ebeb', opacity: 0.7, textAlign: 'center', marginBottom: 24 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.surface, padding: 24 }}>
+          <Text style={{ color: theme.colors.danger, fontSize: 20, marginBottom: 8 }}>Что-то пошло не так</Text>
+          <Text style={{ color: theme.colors.text, opacity: 0.7, textAlign: 'center', marginBottom: 24 }}>
             {this.state.error.message}
           </Text>
           <Pressable
             onPress={this.reset}
-            style={{ backgroundColor: '#0f766e', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+            style={{ backgroundColor: theme.colors.accent700, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
           >
             <Text style={{ color: '#fff', fontSize: 16 }}>Попробовать снова</Text>
           </Pressable>

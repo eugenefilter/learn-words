@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, Easing, Text, ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import theme from '@/constants/theme'
 
 type ToastProps = {
   visible: boolean
@@ -12,9 +13,9 @@ type ToastProps = {
 }
 
 const bgByType: Record<NonNullable<ToastProps['type']>, string> = {
-  success: '#0d9488', // teal-600 close to accent
-  error: '#dc2626',   // red-600
-  info: '#334155',    // slate-700
+  success: theme.colors.accent700,
+  error: theme.colors.danger,
+  info: theme.colors.toastInfo,
 }
 
 const Toast = ({
@@ -82,4 +83,3 @@ const Toast = ({
 }
 
 export default Toast
-
