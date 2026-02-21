@@ -8,7 +8,7 @@ import { useAppContext } from '@/context/AppContext';
 import { CardModel } from '@/models/CardModel';
 import Button from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { RATING_ICON, RATING_COLOR } from '@/constants/rating';
+import RatingProgress from '@/components/ui/RatingProgress';
 import * as Haptics from 'expo-haptics';
 
 type RepeatCard = {
@@ -137,12 +137,8 @@ export default function RepeatScreen() {
             className='rounded-2xl border border-primary-200 bg-primary-800 p-6 mb-4 relative'
             style={{ minHeight: 220 }}
           >
-            <View className='absolute top-4 left-4'>
-              <IconSymbol
-                name={RATING_ICON[card.rating] as any}
-                color={RATING_COLOR[card.rating]}
-                size={20}
-              />
+            <View className='absolute top-4 right-4'>
+              <RatingProgress rating={card.rating} size='md' />
             </View>
 
             <View className='items-center justify-center flex-1 pt-4 gap-3'>

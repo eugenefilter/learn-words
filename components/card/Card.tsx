@@ -3,6 +3,7 @@ import React, { FC, memo, useRef } from 'react'
 import { Pencil, Trash } from 'lucide-react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { TCard } from '@/types/TCard'
+import RatingProgress from '@/components/ui/RatingProgress'
 
 interface ICardProps {
   card: TCard,
@@ -14,9 +15,6 @@ interface ICardProps {
 const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
   const rating = card.rating ?? 0
   const swipeableRef = useRef<Swipeable | null>(null)
-
-  const statusColor = rating === 2 ? '#22c55e' : rating === 1 ? '#facc15' : '#ef4444'
-  const progress = rating === 2 ? 100 : rating === 1 ? 60 : 25
 
   const handleEdit = () => {
     swipeableRef.current?.close()
@@ -77,15 +75,8 @@ const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
             </Text>
           </View>
 
-          <View className='ml-2 mt-0.5 flex-row items-center'>
-            <Text style={{ color: statusColor, fontSize: 11, lineHeight: 11 }} className='mr-1'>[</Text>
-            <View className='w-14 h-1.5 rounded-sm overflow-hidden bg-primary-300/30 border border-primary-300/40'>
-              <View
-                className='h-full'
-                style={{ width: `${progress}%`, backgroundColor: statusColor }}
-              />
-            </View>
-            <Text style={{ color: statusColor, fontSize: 11, lineHeight: 11 }} className='ml-1'>]</Text>
+          <View className='ml-2 mt-0.5'>
+            <RatingProgress rating={rating} />
           </View>
         </View>
       </Pressable>
