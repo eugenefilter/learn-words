@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator, FlatList, TextInput } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
@@ -15,6 +15,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol'
 import theme from '@/constants/theme'
 
 const HEADER_HEIGHT = 64
+const PAGE_SIZE = 20
 
 const CardListScreen = () => {
   const router = useRouter()
@@ -29,7 +30,12 @@ const CardListScreen = () => {
   const [languages, setLanguages] = useState<{ id: number; name: string }[]>([])
   const [dicts, setDicts] = useState<{ id: number; name: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const requestIdRef = useRef(0)
+  const debouncedSearch = useDebounce(search, 500)
 
   const applyFilters = useCallback((list: TCard[]) => {
     let result = list
@@ -58,21 +64,51 @@ const CardListScreen = () => {
     }
   }, [currentLanguageId, currentDictionaryId, setCurrentLanguageId, setCurrentDictionaryId])
 
-  const loadCards = useCallback(async () => {
-    setLoading(true)
-    const list = await CardModel.all(20, 0, currentDictionaryId || undefined);
-    setCards(list);
-    applyFilters(list)
-    setLoading(false)
-  }, [currentDictionaryId, applyFilters])
+  const loadFirstPage = useCallback(async (query: string) => {
+    const requestId = ++requestIdRef.current;
+    setLoading(true);
+    try {
+      const q = query.trim();
+      const firstPage = q.length > 0
+        ? await CardModel.find(q, currentDictionaryId || undefined, PAGE_SIZE, 0)
+        : await CardModel.all(PAGE_SIZE, 0, currentDictionaryId || undefined);
 
-  const findCards = useCallback(async (value: string) => {
-    setLoading(true)
-    const result = await CardModel.find(value, currentDictionaryId || undefined)
-    setCards(result)
-    applyFilters(result)
-    setLoading(false)
-  }, [currentDictionaryId, applyFilters])
+      if (requestId !== requestIdRef.current) return;
+      setCards(firstPage);
+      setPage(1);
+      setHasMore(firstPage.length === PAGE_SIZE);
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [currentDictionaryId]);
+
+  const loadMoreCards = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    const q = debouncedSearch.trim();
+    const offset = page * PAGE_SIZE;
+    setLoadingMore(true);
+    try {
+      const nextPage = q.length > 0
+        ? await CardModel.find(q, currentDictionaryId || undefined, PAGE_SIZE, offset)
+        : await CardModel.all(PAGE_SIZE, offset, currentDictionaryId || undefined);
+
+      setCards((prev) => {
+        if (nextPage.length === 0) return prev;
+        const seen = new Set(prev.map((c) => c.id));
+        const merged = [...prev];
+        for (const item of nextPage) {
+          if (!seen.has(item.id)) merged.push(item);
+        }
+        return merged;
+      });
+      setPage((prev) => prev + 1);
+      setHasMore(nextPage.length === PAGE_SIZE);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, hasMore, debouncedSearch, page, currentDictionaryId]);
 
   const requestDelete = useCallback((id: number) => {
     setPendingDeleteId(id)
@@ -84,32 +120,24 @@ const CardListScreen = () => {
     await CardModel.delete(pendingDeleteId)
     setConfirmVisible(false)
     setPendingDeleteId(null)
-    loadCards()
-  }, [pendingDeleteId, loadCards])
+    await loadFirstPage(debouncedSearch)
+  }, [pendingDeleteId, loadFirstPage, debouncedSearch])
 
   useFocusEffect(
     useCallback(() => {
       loadContext();
-      loadCards();
-    }, [loadContext, loadCards])
+      loadFirstPage(debouncedSearch);
+    }, [loadContext, loadFirstPage, debouncedSearch])
   )
 
-  const debouncedSearch = useDebounce(search, 500)
-
   useEffect(() => {
-    findCards(debouncedSearch)
-  }, [debouncedSearch, findCards])
+    loadFirstPage(debouncedSearch)
+  }, [debouncedSearch, loadFirstPage])
 
   // Перефильтровать текущие карточки при смене фильтров/сортировки (без запроса к БД)
   useEffect(() => {
     applyFilters(cards)
-  }, [applyFilters]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Перезагрузить карточки при смене словаря (намеренно только currentDictionaryId,
-  // чтобы не триггерить лишний запрос к БД при смене фильтров)
-  useEffect(() => {
-    loadCards()
-  }, [currentDictionaryId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cards, applyFilters])
 
   const toggleRatingHidden = (r: number) => {
     setHiddenRatings(prev => {
@@ -131,7 +159,7 @@ const CardListScreen = () => {
   const closeSearch = () => {
     setSearchOpen(false)
     setSearch('')
-    loadCards()
+    loadFirstPage('')
   }
 
   return (
@@ -196,6 +224,13 @@ const CardListScreen = () => {
         maxToRenderPerBatch={10}
         windowSize={10}
         initialNumToRender={15}
+        onEndReached={loadMoreCards}
+        onEndReachedThreshold={0.35}
+        ListFooterComponent={loadingMore ? (
+          <View className='py-4'>
+            <ActivityIndicator size='small' color='#d9ebeb' />
+          </View>
+        ) : null}
         ListHeaderComponent={(
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className='px-4' style={{ flexGrow: 0 }}>
             <View className='flex-row gap-2 pb-2 pt-2'>
