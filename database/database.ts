@@ -12,6 +12,7 @@ const isReleasedObjectError = (error: unknown): boolean => {
 const getOrOpenDb = (): SQLite.SQLiteDatabase => {
   if (!db) {
     db = SQLite.openDatabaseSync(DB_NAME);
+    db.execSync('PRAGMA foreign_keys = ON;');
   }
   return db;
 };
@@ -102,6 +103,7 @@ const runMigrations = async (database: SQLite.SQLiteDatabase): Promise<void> => 
     try { await database.execAsync('CREATE INDEX IF NOT EXISTS idx_cards_dictionary ON cards(dictionary_id);'); } catch {}
     try { await database.execAsync('CREATE INDEX IF NOT EXISTS idx_cards_word ON cards(dictionary_id, word COLLATE NOCASE);'); } catch {}
     try { await database.execAsync('CREATE INDEX IF NOT EXISTS idx_examples_card_id ON examples(card_id);'); } catch {}
+    try { await database.execAsync('CREATE INDEX IF NOT EXISTS idx_cards_dict_rating ON cards(dictionary_id, rating);'); } catch {}
   });
 };
 

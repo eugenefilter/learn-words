@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LanguageModel } from '@/models/LanguageModel';
 import { DictionaryModel } from '@/models/DictionaryModel';
@@ -10,6 +10,7 @@ const STORAGE_KEY_DICTIONARY = 'app:currentDictionaryId';
 type AppContextState = {
   currentLanguageId: number | null;
   currentDictionaryId: number | null;
+  isReady: boolean;
   setCurrentLanguageId: (id: number) => void;
   setCurrentDictionaryId: (id: number) => void;
 };
@@ -19,6 +20,7 @@ const AppContext = createContext<AppContextState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentLanguageId, setCurrentLanguageIdState] = useState<number | null>(null);
   const [currentDictionaryId, setCurrentDictionaryIdState] = useState<number | null>(null);
+  const [isReady, setIsReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +44,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentDictionaryIdState(dictId);
       } catch (e) {
         setInitError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setIsReady(true);
       }
     };
     init();
@@ -49,12 +53,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setCurrentLanguageId = useCallback((id: number) => {
     setCurrentLanguageIdState(id);
-    AsyncStorage.setItem(STORAGE_KEY_LANGUAGE, String(id));
+    AsyncStorage.setItem(STORAGE_KEY_LANGUAGE, String(id)).catch(() => {
+      // Состояние обновлено в памяти — игнорируем ошибку записи
+    });
   }, []);
 
   const setCurrentDictionaryId = useCallback((id: number) => {
     setCurrentDictionaryIdState(id);
-    AsyncStorage.setItem(STORAGE_KEY_DICTIONARY, String(id));
+    AsyncStorage.setItem(STORAGE_KEY_DICTIONARY, String(id)).catch(() => {
+      // Состояние обновлено в памяти — игнорируем ошибку записи
+    });
   }, []);
 
   if (initError) {
@@ -66,9 +74,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   }
 
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#101b2b' }}>
+        <ActivityIndicator size='large' color='#4a98f0' />
+      </View>
+    );
+  }
+
   const value: AppContextState = {
     currentLanguageId,
     currentDictionaryId,
+    isReady,
     setCurrentLanguageId,
     setCurrentDictionaryId,
   };

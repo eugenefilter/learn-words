@@ -105,7 +105,4 @@ const styles = StyleSheet.create({
   card: {
     backfaceVisibility: 'hidden',
   },
-  cardBack: {
-    backgroundColor: '#E7E0EC',
-  },
 });

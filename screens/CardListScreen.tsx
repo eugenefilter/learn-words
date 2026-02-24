@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator, FlatList, TextInput } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/Card'
@@ -14,11 +15,12 @@ import EmptyState from '@/components/ui/EmptyState'
 import { IconSymbol } from '@/components/ui/IconSymbol'
 import theme from '@/constants/theme'
 
-const HEADER_HEIGHT = 64
+const HEADER_CONTENT_HEIGHT = 64
 const PAGE_SIZE = 20
 
 const CardListScreen = () => {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext()
   const [cards, setCards] = useState<TCard[]>([])
   const [visibleCards, setVisibleCards] = useState<TCard[]>([])
@@ -34,6 +36,7 @@ const CardListScreen = () => {
   const [searchOpen, setSearchOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const [focusCount, setFocusCount] = useState(0)
   const requestIdRef = useRef(0)
   const debouncedSearch = useDebounce(search, 500)
 
@@ -123,16 +126,20 @@ const CardListScreen = () => {
     await loadFirstPage(debouncedSearch)
   }, [pendingDeleteId, loadFirstPage, debouncedSearch])
 
+  // useFocusEffect только обновляет контекст и триггерит счётчик фокуса —
+  // не вызывает loadFirstPage напрямую, чтобы избежать двойного запроса
   useFocusEffect(
     useCallback(() => {
       loadContext();
-      loadFirstPage(debouncedSearch);
-    }, [loadContext, loadFirstPage, debouncedSearch])
+      setFocusCount((c) => c + 1);
+    }, [loadContext])
   )
 
+  // Единственное место вызова loadFirstPage — реагирует на смену поиска и фокуса экрана
   useEffect(() => {
+    if (focusCount === 0) return;
     loadFirstPage(debouncedSearch)
-  }, [debouncedSearch, loadFirstPage])
+  }, [focusCount, debouncedSearch, loadFirstPage])
 
   // Перефильтровать текущие карточки при смене фильтров/сортировки (без запроса к БД)
   useEffect(() => {
@@ -174,7 +181,7 @@ const CardListScreen = () => {
         }}
       >
         {!searchOpen && (
-          <View className='bg-primary-900'>
+          <View className='bg-primary-900' style={{ paddingTop: insets.top }}>
             <View className='px-4 pt-3'>
               <View className='flex-row items-center justify-between mb-2'>
                 <View className='flex-1 mr-3'>
@@ -203,13 +210,13 @@ const CardListScreen = () => {
       </View>
 
       {loading ? (
-        <View className='flex-1 items-center justify-center' style={{ paddingTop: HEADER_HEIGHT }}>
+        <View className='flex-1 items-center justify-center' style={{ paddingTop: HEADER_CONTENT_HEIGHT + insets.top }}>
           <ActivityIndicator size='large' color='#d9ebeb' />
         </View>
       ) : (
       <FlatList
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: HEADER_HEIGHT, paddingBottom: 16, flexGrow: 1 }}
+        contentContainerStyle={{ paddingTop: HEADER_CONTENT_HEIGHT + insets.top, paddingBottom: 16, flexGrow: 1 }}
         data={visibleCards}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (

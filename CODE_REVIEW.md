@@ -1,6 +1,621 @@
-# Code Review — VocabCardsApp
+# Code Review — VocabCardsApp (актуальный)
 
-> Дата ревью: 2026-02-19
+> Дата ревью: 2026-02-24
+> Стек: React Native 0.81.5 / Expo 54 / Expo Router v6 / NativeWind v4 / expo-sqlite v16
+> Предыдущее ревью (2026-02-19) — в разделе ниже. Многие старые баги исправлены.
+
+---
+
+## Содержание (текущее ревью)
+
+1. [Критические ошибки и баги](#1-критические-ошибки-и-баги)
+2. [Производительность и оптимизация](#2-производительность-и-оптимизация)
+3. [Качество кода](#3-качество-кода)
+4. [Адаптивность под устройства](#4-адаптивность-под-устройства)
+5. [Современные подходы](#5-современные-подходы)
+6. [Архитектурные рекомендации](#6-архитектурные-рекомендации)
+7. [Таблица приоритетов](#7-таблица-приоритетов)
+
+---
+
+## 1. Критические ошибки и баги
+
+### 1.1 N+1 запросов в `repeat.tsx` (строки 50–58)
+
+```ts
+// repeat.tsx:50-58 — ПЛОХО
+const withExamples = await Promise.all(
+  rows.map(async (row) => {
+    const exRows = await db.getAllAsync<{ sentence: string }>(
+      'SELECT sentence FROM examples WHERE card_id = ?', [row.id]
+    );
+    return { ...row, examples: exRows.map((e) => e.sentence) };
+  })
+);
+```
+
+При 100 карточках — 101 запрос к БД. В `CardModel` уже есть правильный паттерн через `Map` (`allWithExamplesByDictionary`). Нужно добавить `CardModel.getRepeatPool()` с JOIN/GROUP_CONCAT.
+
+**Исправление:**
+```sql
+SELECT c.id, c.word, c.translation, c.transcription, c.rating,
+       GROUP_CONCAT(e.sentence, '||') AS examples_raw
+FROM cards c
+LEFT JOIN examples e ON e.card_id = c.id
+WHERE c.dictionary_id = ? AND c.rating < 2
+GROUP BY c.id
+ORDER BY c.rating ASC, RANDOM()
+```
+
+---
+
+### 1.2 Прямой SQL вне модели в `repeat.tsx` (строка 90)
+
+```ts
+// repeat.tsx:90 — нарушение архитектуры
+await getDB().runAsync('UPDATE cards SET rating = ? WHERE id = ?', [newRating, card.id]);
+```
+
+`CardModel.updateRatingAfterAnswer()` уже существует — делает то же самое с транзакцией и проверкой текущего рейтинга из БД. Замена:
+```ts
+await CardModel.updateRatingAfterAnswer(card.id, delta > 0);
+```
+
+---
+
+### 1.3 Карточки с rating=2 остаются на экране в `repeat.tsx` (строки 92–94)
+
+После ответа "Знаю" на карточку с rating=1 она получает rating=2, но **остаётся в массиве `cards`** — пользователь продолжит её видеть до перезагрузки. Это противоречит заголовку экрана: "Карточки с «Не знаю» и «Плохо»".
+
+```ts
+// repeat.tsx:92-94 — карточка с rating=2 не фильтруется
+setCards((prev) =>
+  prev.map((c) => (c.id === card.id ? { ...c, rating: newRating } : c))
+);
+```
+
+**Исправление:**
+```ts
+setCards((prev) =>
+  prev
+    .map((c) => (c.id === card.id ? { ...c, rating: newRating } : c))
+    .filter((c) => c.rating < 2)  // убрать "выпускников"
+);
+```
+
+---
+
+### 1.4 `getQuizPool` загружает ВСЕ карточки без LIMIT (`CardModel.ts:155`)
+
+```ts
+// CardModel.ts:155 — опасно при большом словаре
+const rows = await db.getAllAsync<CardRow>(
+  'SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM()',
+  [dictionaryId]
+);
+```
+
+`ORDER BY RANDOM()` без `LIMIT` на 10 000+ строках — SQLite перебирает весь индекс. При больших словарях это подвесит UI на несколько секунд.
+
+**Исправление:**
+```sql
+SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM() LIMIT 50
+```
+
+---
+
+### 1.5 Двойная загрузка данных в `CardListScreen.tsx` (строки 126–135)
+
+```ts
+// CardListScreen.tsx:126-135
+useFocusEffect(
+  useCallback(() => {
+    loadContext();
+    loadFirstPage(debouncedSearch); // вызов #1
+  }, [loadContext, loadFirstPage, debouncedSearch])
+)
+
+useEffect(() => {
+  loadFirstPage(debouncedSearch); // вызов #2 — одновременно с #1 при монтировании
+}, [debouncedSearch, loadFirstPage])
+```
+
+При первом рендере оба хука стреляют одновременно — два параллельных запроса к БД. Защита через `requestIdRef` работает, но создаёт лишнюю нагрузку. `useFocusEffect` должен покрывать возврат к экрану, `useEffect` — смену поискового запроса.
+
+---
+
+### 1.6 Race condition в `AppContext.tsx` — нет флага `isReady`
+
+`currentLanguageId` и `currentDictionaryId` инициализируются как `null`, компоненты уже рендерятся до завершения инициализации из AsyncStorage. В `_layout.tsx` есть `dbInitialized`, но `AppContext` не имеет аналогичной защиты:
+
+```ts
+// AppContext.tsx — нет loading-состояния
+const [currentLanguageId, setCurrentLanguageIdState] = useState<number | null>(null);
+// дети рендерятся немедленно с null
+```
+
+---
+
+### 1.7 `setCurrentDictionaryId` в AsyncStorage без обработки ошибок (`AppContext.tsx:57`)
+
+```ts
+const setCurrentDictionaryId = useCallback((id: number) => {
+  setCurrentDictionaryIdState(id);
+  AsyncStorage.setItem(STORAGE_KEY_DICTIONARY, String(id)); // без await/catch
+}, []);
+```
+
+При ошибке записи (переполнение хранилища, сбой) данные не сохранятся. При следующем запуске пользователь потеряет выбранный словарь.
+
+---
+
+### 1.8 Мёртвый стиль `cardBack` в `FlipCard.tsx` (строка 109)
+
+```ts
+const styles = StyleSheet.create({
+  card: { backfaceVisibility: 'hidden' },
+  cardBack: { backgroundColor: '#E7E0EC' }, // нигде не используется — мёртвый код
+});
+```
+
+---
+
+## 2. Производительность и оптимизация
+
+### 2.1 Фильтрация и сортировка на стороне JS вместо SQL (`CardListScreen.tsx:40–53`)
+
+```ts
+const applyFilters = useCallback((list: TCard[]) => {
+  let result = list;
+  if (hiddenRatings.size > 0) {
+    result = result.filter(c => !hiddenRatings.has(c.rating ?? 0)); // JS-фильтрация
+  }
+  if (sortMode !== 'none') {
+    result = [...result].sort(...); // JS-сортировка
+  }
+  setVisibleCards(result);
+}, [hiddenRatings, sortMode]);
+```
+
+**Проблема:** пагинация идёт по нефильтрованным данным из БД. При скрытии рейтинга 0 из 20 загруженных карточек отобразится, например, 5. Но `hasMore` всё равно останется `true`, и `loadMoreCards` продолжит запрашивать данные, которые потом отфильтруются. Правильно — передавать фильтры прямо в SQL запрос.
+
+### 2.2 `Animated` API вместо `react-native-reanimated` в `FlipCard`
+
+`Animated.timing` работает на JS-потоке. `react-native-reanimated` (уже есть в Expo) работает на UI-потоке — 60/120fps без блокировок. Особенно критично при активных свайпах.
+
+```ts
+// FlipCard.tsx:22-35 — Animated на JS потоке
+Animated.timing(animatedValue, {
+  toValue: 0, duration: 300, useNativeDriver: true,
+}).start(() => setFlipped(false));
+```
+
+### 2.3 `PanResponder` вместо `react-native-gesture-handler`
+
+`PanResponder` — устаревший API, работает на JS-потоке и конфликтует с системными жестами (navigation swipe back на iOS). `react-native-gesture-handler` (уже установлен в Expo) обрабатывает жесты нативно.
+
+### 2.4 `React.memo` применён непоследовательно
+
+- `Card` — мемоизирован ✅
+- `FrontCard`, `BackCard`, `EmptyState`, `Button`, `RatingProgress` — не мемоизированы ❌
+
+`Button` и `RatingProgress` рендерятся многократно внутри списков — кандидаты на `React.memo`.
+
+### 2.5 `SELECT *` во всех запросах `CardModel`
+
+```ts
+// CardModel.ts — везде SELECT *
+'SELECT * FROM cards WHERE ...'
+```
+
+`SELECT *` возвращает поле `explanation` (потенциально длинный текст) там, где оно не нужно (список, навигация). Явный выбор полей снижает объём передаваемых данных.
+
+### 2.6 Предзагрузка опций для следующей карточки в Quiz отсутствует
+
+`buildOptionsForCard` вызывается при переходе к следующей карточке — пользователь видит задержку. Можно предзагружать опции для n+1 карточки в фоне сразу после ответа на текущую.
+
+### 2.7 Индекс на `rating` отсутствует
+
+`WHERE rating < 2` (repeat), `ORDER BY rating` (список) — частые запросы без индекса:
+
+```sql
+-- database.ts — добавить
+CREATE INDEX IF NOT EXISTS idx_cards_rating ON cards(dictionary_id, rating);
+```
+
+### 2.8 `hardcoded` число вариантов ответа Quiz
+
+```ts
+// quiz.tsx:158 — magic number
+if (!currentCard || options.length !== 5) return;
+// quiz.tsx:88
+if (fullWrong.length < 4 || !correct) { ... }
+```
+
+Число `5` = 1 правильный + 4 неправильных — нигде не определено как константа.
+
+---
+
+## 3. Качество кода
+
+### 3.1 `repeat.tsx` нарушает архитектуру проекта
+
+Файл содержит прямые SQL-запросы через `getDB()`, тогда как по всему проекту запросы инкапсулированы в моделях. Нужно добавить в `CardModel`:
+- `CardModel.getRepeatPool(dictionaryId)` — загрузка + примеры за один запрос
+- `CardModel.updateRating(cardId, newRating)` — прямое обновление (не через delta answer)
+
+### 3.2 Hardcoded цвета в `quiz.tsx` не попадают в тему (`строки 181–192`)
+
+```ts
+const neutral = { backgroundColor: '#0e1c1c', borderColor: '#1e4747' };
+// correct:
+{ backgroundColor: '#166534', borderColor: '#22c55e' }
+// wrong:
+{ backgroundColor: '#991b1b', borderColor: '#ef4444' }
+```
+
+Эти цвета не объявлены ни в `tailwind.config.js`, ни в `constants/theme.ts`. При смене темы придётся менять вручную.
+
+### 3.3 Поле `show?: boolean` в типе `TCard` — UI-состояние в модели данных
+
+```ts
+// types/TCard.ts
+type TCard = { ..., show?: boolean }
+```
+
+`show` — флаг отображения карточки в UI. Он не имеет отношения к модели данных и должен храниться в локальном `useState` компонента.
+
+### 3.4 Устаревший файл `database/databaseSync.ts`
+
+Файл не импортируется нигде в проекте. Мёртвый код — удалить.
+
+### 3.5 `loadContext` в `CardListScreen` — потенциальный бесконечный цикл
+
+```ts
+const loadContext = useCallback(async () => {
+  // ...
+  if (!currentDictionaryId && d[0]?.id) setCurrentDictionaryId(d[0].id);
+}, [currentLanguageId, currentDictionaryId, setCurrentLanguageId, setCurrentDictionaryId]);
+```
+
+`loadContext` меняется при изменении `currentDictionaryId`. Это обновляет `useFocusEffect`, который снова вызывает `loadContext`. При определённых условиях — цикл.
+
+### 3.6 `CardModel.delete` — избыточное ручное удаление примеров
+
+```ts
+// CardModel.ts:85-88
+await db.runAsync('DELETE FROM examples WHERE card_id = ?', [id]); // избыточно
+await db.runAsync('DELETE FROM cards WHERE id = ?', [id]);
+```
+
+В `database.ts` таблица `examples` объявлена с `ON DELETE CASCADE`. Явное удаление примеров не нужно.
+
+### 3.7 Непоследовательный стиль кода
+
+- Часть методов `CardModel.ts` заканчиваются без `;` (строки 218, 228)
+- В разных файлах смесь `const Component = () =>` и `function Component()`
+- Рекомендуется настроить Prettier с `semi: true` и зафиксировать стиль объявления компонентов
+
+---
+
+## 4. Адаптивность под устройства
+
+### 4.1 Hardcoded высота таб-бара `62px` (`_layout.tsx`)
+
+```ts
+tabBarStyle: { height: 62 }
+```
+
+На iPad, iPhone SE, устройствах с крупными системными шрифтами высота должна быть другой. Нужно либо вычислять динамически, либо использовать значения из `useSafeAreaInsets()`.
+
+### 4.2 Фиксированные размеры карточки в `repeat.tsx`
+
+```ts
+style={{ minHeight: 220 }}  // строка 138 — слишком много на iPhone SE
+style={{ maxHeight: 160 }}  // строка 164 — мало для планшетов
+```
+
+**Решение:**
+```ts
+const { height } = useWindowDimensions();
+const cardMinHeight = height * 0.28; // ~28% высоты экрана
+```
+
+### 4.3 `HEADER_HEIGHT = 64` не учитывает SafeArea (`CardListScreen.tsx:17`)
+
+```ts
+const HEADER_HEIGHT = 64
+```
+
+На iPhone 14 Pro+ с Dynamic Island `insets.top` равен 59px. Хедер перекрывает контент. Нужно:
+```ts
+const insets = useSafeAreaInsets();
+const headerHeight = 64 + insets.top;
+```
+
+### 4.4 Нет поддержки планшетов (iPad)
+
+Весь интерфейс однодолонный. На iPad 12.9" нет:
+- Многоколоночной раскладки для списка карточек
+- Адаптивных отступов
+- Использования `useWindowDimensions` для брейкпойнтов
+
+Минимальный шаг:
+```ts
+const { width } = useWindowDimensions();
+const isTablet = width >= 768;
+const numColumns = isTablet ? 2 : 1;
+```
+
+### 4.5 Нет поддержки Landscape-ориентации
+
+При повороте устройства фиксированные высоты ломают верстку. Необходимо:
+- Явно заблокировать ориентацию в `app.json`: `"orientation": "portrait"`, или
+- Добавить адаптацию через `useWindowDimensions` и `useFocusEffect`
+
+### 4.6 Нет `accessibilityLabel` на иконках-кнопках
+
+```tsx
+// FrontCard.tsx — кнопка без описания для VoiceOver/TalkBack
+<Pressable onPress={onEdit}>
+  <IconSymbol name='pencil' size={20} />
+</Pressable>
+```
+
+**Исправление:**
+```tsx
+<Pressable
+  onPress={onEdit}
+  accessibilityLabel="Редактировать карточку"
+  accessibilityRole="button"
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
+```
+
+### 4.7 Нет `hitSlop` на маленьких иконках
+
+Apple HIG рекомендует зону касания минимум 44×44pt. Иконки 18–20px без `hitSlop` неудобны на реальных устройствах. Добавить ко всем иконкам-кнопкам.
+
+### 4.8 Dynamic Type (iOS) не поддерживается
+
+Приложение использует фиксированные классы (`text-4xl`, `text-2xl`). Проверить, что нигде не выставлен `allowFontScaling={false}` — это ломает системную настройку размера шрифта для слабовидящих.
+
+---
+
+## 5. Современные подходы
+
+### 5.1 `react-native-reanimated` v3 для анимаций
+
+```ts
+// Вместо Animated (JS-поток):
+import Animated, {
+  useSharedValue, withTiming, interpolate, useAnimatedStyle
+} from 'react-native-reanimated';
+
+const rotation = useSharedValue(0);
+const animatedStyle = useAnimatedStyle(() => ({
+  transform: [{ rotateY: `${rotation.value}deg` }],
+}));
+// Работает на UI-потоке — 60/120fps без janky-эффекта
+```
+
+### 5.2 Версионированные миграции через `PRAGMA user_version`
+
+```ts
+// Вместо try-catch ALTER TABLE без версий:
+const { user_version } = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+
+if (user_version < 2) {
+  await db.execAsync('ALTER TABLE cards ADD COLUMN explanation TEXT');
+}
+if (user_version < 3) {
+  await db.execAsync('CREATE INDEX IF NOT EXISTS idx_cards_rating ON cards(dictionary_id, rating)');
+}
+await db.execAsync(`PRAGMA user_version = 3`);
+```
+
+### 5.3 Кастомный хук `useLayoutInsets()`
+
+Паттерн `(tabBarHeight || 0) + insets.bottom + N` повторяется в каждом экране:
+
+```ts
+// hooks/useLayoutInsets.ts
+export function useLayoutInsets(extraBottom = 0) {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  return {
+    contentPaddingBottom: tabBarHeight + insets.bottom + extraBottom,
+    headerPaddingTop: insets.top,
+  };
+}
+```
+
+### 5.4 Zustand для глобального состояния
+
+```ts
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+const useAppStore = create(
+  persist(
+    (set) => ({
+      currentLanguageId: null as number | null,
+      currentDictionaryId: null as number | null,
+      setCurrentLanguageId: (id: number) => set({ currentLanguageId: id }),
+      setCurrentDictionaryId: (id: number) => set({ currentDictionaryId: id }),
+    }),
+    { name: 'app-storage', storage: createJSONStorage(() => AsyncStorage) }
+  )
+);
+```
+
+Автоматическая персистентность без ручного `AsyncStorage.setItem`. Нет лишних ре-рендеров у компонентов, которые не подписаны на изменившееся поле.
+
+### 5.5 Кастомные хуки для бизнес-логики экранов
+
+```ts
+// hooks/useRepeatCards.ts
+export function useRepeatCards(dictionaryId: number | null) {
+  const [cards, setCards] = useState<RepeatCard[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!dictionaryId) { setCards([]); setLoading(false); return; }
+    setLoading(true);
+    const data = await CardModel.getRepeatPool(dictionaryId);
+    setCards(data);
+    setLoading(false);
+  }, [dictionaryId]);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  return { cards, loading, reload: load };
+}
+```
+
+### 5.6 Zod-валидация форм
+
+```ts
+import { z } from 'zod';
+
+const CardSchema = z.object({
+  word: z.string().min(1, 'Слово обязательно'),
+  translation: z.string().min(1, 'Перевод обязателен'),
+  transcription: z.string().optional(),
+  examples: z.array(z.string().min(1)).max(10),
+});
+```
+
+### 5.7 CSV-утилиты вынести из экранов
+
+`csv.tsx` и `library.tsx` содержат дублирующийся CSV-парсер. Создать:
+```
+utils/csv.ts
+  parseCSV(text: string, delimiter?: string): CSVRow[]
+  generateCSV(cards: TCard[]): string
+  detectDelimiter(firstLine: string): string
+```
+
+### 5.8 Тесты
+
+Jest настроен, но ни одного теста нет. Первоочередные кандидаты:
+
+| Что тестировать | Почему |
+|---|---|
+| `CardModel.clampRating()` | Граничные значения 0/1/2, отрицательные, дробные |
+| `CardModel.nextRatingByAnswer()` | Логика инкремента/декремента |
+| CSV-парсер | Много edge cases: кавычки, BOM, разделители, пустые поля |
+| `AppContext` init | Порядок загрузки из AsyncStorage |
+
+---
+
+## 6. Архитектурные рекомендации
+
+### 6.1 Добавить `CardModel.getRepeatPool()` и убрать прямой SQL из `repeat.tsx`
+
+```ts
+// models/CardModel.ts
+static async getRepeatPool(dictionaryId: number): Promise<RepeatCard[]> {
+  const db = getDB();
+  const rows = await db.getAllAsync<CardRow & { examples_raw: string | null }>(
+    `SELECT c.id, c.word, c.translation, c.transcription, c.rating,
+            GROUP_CONCAT(e.sentence, '||') AS examples_raw
+     FROM cards c
+     LEFT JOIN examples e ON e.card_id = c.id
+     WHERE c.dictionary_id = ? AND c.rating < 2
+     GROUP BY c.id
+     ORDER BY c.rating ASC, RANDOM()`,
+    [dictionaryId]
+  );
+  return rows.map(r => ({
+    ...r,
+    examples: r.examples_raw ? r.examples_raw.split('||').filter(Boolean) : [],
+  }));
+}
+```
+
+### 6.2 `ErrorBoundary` на уровне каждого таба
+
+Текущий `ErrorBoundary` в `_layout.tsx` ловит ошибки всего приложения. Ошибка в одном табе роняет всё:
+
+```ts
+// app/(tabs)/_layout.tsx
+<Tabs.Screen name="quiz" component={() => (
+  <ErrorBoundary fallback={<ErrorScreen />}>
+    <QuizScreen />
+  </ErrorBoundary>
+)} />
+```
+
+### 6.3 Разбить `LibraryScreen` на подкомпоненты
+
+`library.tsx` — монолитный файл с управлением языками, словарями, CSV-импортом и четырьмя модалами. Предлагаемое разбиение:
+```
+screens/library/
+  LibraryScreen.tsx
+  LanguageList.tsx
+  DictionaryList.tsx
+  LanguageFormModal.tsx
+  DictionaryFormModal.tsx
+```
+
+### 6.4 Константы для Quiz
+
+```ts
+// constants/quiz.ts
+export const QUIZ_MIN_CARDS = 5;
+export const QUIZ_WRONG_OPTIONS = 4;
+export const QUIZ_TOTAL_OPTIONS = QUIZ_WRONG_OPTIONS + 1; // 5
+```
+
+### 6.5 Добавить индекс на rating
+
+```sql
+-- database.ts — добавить в initDatabase()
+CREATE INDEX IF NOT EXISTS idx_cards_dict_rating
+  ON cards(dictionary_id, rating);
+```
+
+---
+
+## 7. Таблица приоритетов
+
+| Статус | Приоритет | Проблема | Файл |
+|--------|-----------|----------|------|
+| ✅ | 🔴 Критично | N+1 запросов → `CardModel.getRepeatPool()` с JOIN | `repeat.tsx` |
+| ✅ | 🔴 Критично | Прямой SQL → `CardModel.updateRatingAfterAnswer()` | `repeat.tsx` |
+| ✅ | 🔴 Критично | Карточки rating=2 фильтруются после ответа | `repeat.tsx` |
+| ✅ | 🔴 Критично | `getQuizPool` + `LIMIT 50` | `CardModel.ts` |
+| ✅ | 🟠 Важно | Двойная загрузка → `focusCount` паттерн | `CardListScreen.tsx` |
+| ✅ | 🟠 Важно | HEADER_HEIGHT + `insets.top` для SafeArea | `CardListScreen.tsx` |
+| ✅ | 🟠 Важно | `isReady` флаг + `ActivityIndicator` в AppContext | `AppContext.tsx` |
+| ✅ | 🟠 Важно | AsyncStorage с `.catch()` | `AppContext.tsx` |
+| ✅ | 🟠 Важно | Hardcoded цвета → `OPTION_COLORS` константа | `quiz.tsx` |
+| ✅ | 🟠 Важно | Магические числа → `constants/quiz.ts` | `quiz.tsx` |
+| ✅ | 🟡 Умеренно | Адаптивные размеры → `useWindowDimensions` | `repeat.tsx` |
+| ✅ | 🟡 Умеренно | Мёртвый `cardBack` стиль удалён | `FlipCard.tsx` |
+| ✅ | 🟡 Умеренно | `databaseSync.ts` удалён | `database/` |
+| ✅ | 🟡 Умеренно | Избыточный `DELETE FROM examples` убран | `CardModel.ts` |
+| ✅ | 🟢 Улучшение | Индекс `idx_cards_dict_rating` | `database.ts` |
+| ✅ | 🟢 Улучшение | `AGENTS.md` — инструкция для агентов | `AGENTS.md` |
+| ⏳ | 🟡 Умеренно | `show` поле в TCard — UI-состояние в модели | `types/TCard.ts` |
+| ⏳ | 🟡 Умеренно | Фильтрация в JS вместо SQL | `CardListScreen.tsx` |
+| ⏳ | 🟡 Умеренно | `accessibilityLabel` на иконках-кнопках | Все экраны |
+| ⏳ | 🟡 Умеренно | `hitSlop` на маленьких иконках | Все экраны |
+| ⏳ | 🟢 Улучшение | Animated → Reanimated | `FlipCard.tsx`, `Toast.tsx` |
+| ⏳ | 🟢 Улучшение | PanResponder → GestureHandler | `FlipCard.tsx` |
+| ⏳ | 🟢 Улучшение | Версионированные миграции `PRAGMA user_version` | `database.ts` |
+| ⏳ | 🟢 Улучшение | Zustand вместо Context+AsyncStorage | `AppContext.tsx` |
+| ⏳ | 🟢 Улучшение | Поддержка планшетов (iPad) | Все экраны |
+| ⏳ | 🟢 Улучшение | Тесты CardModel + CSV-парсер | — |
+| ⏳ | 🟢 Улучшение | CSV-утилиты → `utils/csv.ts` | `csv.tsx`, `library.tsx` |
+
+---
+
+---
+
+# Code Review (предыдущее — 2026-02-19)
+
 > Стек: React Native 0.76, Expo 52, Expo Router 4, NativeWind 4, expo-sqlite 15
 
 ---

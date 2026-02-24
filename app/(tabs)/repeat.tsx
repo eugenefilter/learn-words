@@ -1,9 +1,8 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View, Pressable } from 'react-native';
+import { ScrollView, Text, View, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getDB } from '@/database/database';
 import { useAppContext } from '@/context/AppContext';
 import { CardModel } from '@/models/CardModel';
 import Button from '@/components/ui/Button';
@@ -23,6 +22,7 @@ type RepeatCard = {
 export default function RepeatScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { height: screenHeight } = useWindowDimensions();
   const { currentDictionaryId } = useAppContext();
 
   const [cards, setCards] = useState<RepeatCard[]>([]);
@@ -41,23 +41,8 @@ export default function RepeatScreen() {
       return;
     }
 
-    const db = getDB();
-    const rows = await db.getAllAsync<Omit<RepeatCard, 'examples'>>(
-      'SELECT id, word, translation, transcription, rating FROM cards WHERE dictionary_id = ? AND rating < 2 ORDER BY rating ASC, RANDOM()',
-      [currentDictionaryId]
-    );
-
-    const withExamples = await Promise.all(
-      rows.map(async (row) => {
-        const exRows = await db.getAllAsync<{ sentence: string }>(
-          'SELECT sentence FROM examples WHERE card_id = ?',
-          [row.id]
-        );
-        return { ...row, examples: exRows.map((e) => e.sentence) };
-      })
-    );
-
-    setCards(withExamples);
+    const data = await CardModel.getRepeatPool(currentDictionaryId);
+    setCards(data);
     setLoading(false);
   }, [currentDictionaryId]);
 
@@ -67,17 +52,6 @@ export default function RepeatScreen() {
     }, [load])
   );
 
-  const goNext = useCallback(() => {
-    setRevealed(false);
-    setIndex((prev) => {
-      if (prev >= cards.length - 1) {
-        load();
-        return 0;
-      }
-      return prev + 1;
-    });
-  }, [cards.length, load]);
-
   const handleAnswer = useCallback(async (delta: number) => {
     const card = cards[index];
     if (!card) return;
@@ -86,17 +60,27 @@ export default function RepeatScreen() {
       delta > 0 ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
     );
 
-    const newRating = CardModel.clampRating(card.rating + delta);
-    await getDB().runAsync('UPDATE cards SET rating = ? WHERE id = ?', [newRating, card.id]);
+    const newRating = await CardModel.updateRatingAfterAnswer(card.id, delta > 0);
 
-    setCards((prev) =>
-      prev.map((c) => (c.id === card.id ? { ...c, rating: newRating } : c))
-    );
+    // Обновляем рейтинг и убираем карточки с rating >= 2 из очереди
+    const updatedCards = cards
+      .map((c) => (c.id === card.id ? { ...c, rating: newRating ?? c.rating } : c))
+      .filter((c) => c.rating < 2);
 
-    goNext();
-  }, [cards, index, goNext]);
+    setRevealed(false);
+    setCards(updatedCards);
+
+    if (updatedCards.length === 0) {
+      setIndex(0);
+    } else {
+      const nextIndex = index + 1;
+      setIndex(nextIndex >= updatedCards.length ? 0 : nextIndex);
+    }
+  }, [cards, index]);
 
   const card = cards[index] ?? null;
+  const cardMinHeight = Math.max(180, screenHeight * 0.28);
+  const examplesMaxHeight = Math.max(120, screenHeight * 0.2);
 
   return (
     <View
@@ -135,7 +119,7 @@ export default function RepeatScreen() {
           <Pressable
             onPress={() => { if (!revealed) setRevealed(true); }}
             className='rounded-2xl border border-primary-200 bg-primary-800 p-6 mb-4 relative'
-            style={{ minHeight: 220 }}
+            style={{ minHeight: cardMinHeight }}
           >
             <View className='absolute top-4 right-4'>
               <RatingProgress rating={card.rating} size='md' />
@@ -161,7 +145,7 @@ export default function RepeatScreen() {
                   <ScrollView
                     className='mt-2'
                     showsVerticalScrollIndicator={false}
-                    style={{ maxHeight: 160 }}
+                    style={{ maxHeight: examplesMaxHeight }}
                   >
                     {card.examples.map((sentence, i) => (
                       <Text key={i} className='text-primary-100 opacity-70 text-base py-1'>
@@ -179,7 +163,6 @@ export default function RepeatScreen() {
               </Text>
             )}
           </Pressable>
-
         </View>
       )}
 

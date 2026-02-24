@@ -8,6 +8,7 @@ import { TCard } from '@/types/TCard';
 import { useAppContext } from '@/context/AppContext';
 import Button from '@/components/ui/Button';
 import { FLOATING_PANEL_GAP, QUIZ_CONTENT_BOTTOM_PADDING } from '@/constants/layout';
+import { QUIZ_WRONG_OPTIONS, QUIZ_TOTAL_OPTIONS, QUIZ_MIN_CARDS, QUIZ_MIN_UNIQUE_TRANSLATIONS } from '@/constants/quiz';
 import * as Haptics from 'expo-haptics';
 import { DictionaryModel } from '@/models/DictionaryModel';
 import DictionaryPicker from '@/components/library/DictionaryPicker';
@@ -73,7 +74,7 @@ export default function QuizScreen() {
     }
 
     const correct = (card.translation || '').trim();
-    const wrongFromDb = await CardModel.getWrongOptions(currentDictionaryId, card.id, 4);
+    const wrongFromDb = await CardModel.getWrongOptions(currentDictionaryId, card.id, QUIZ_WRONG_OPTIONS);
 
     const uniqueWrong = Array.from(new Set(wrongFromDb.map((v) => (v || '').trim())))
       .filter((v) => v.length > 0 && v !== correct);
@@ -83,9 +84,9 @@ export default function QuizScreen() {
       .map((c) => (c.translation || '').trim())
       .filter((v) => v.length > 0 && v !== correct && !uniqueWrong.includes(v));
 
-    const fullWrong = [...uniqueWrong, ...fallbackWrong].slice(0, 4);
+    const fullWrong = [...uniqueWrong, ...fallbackWrong].slice(0, QUIZ_WRONG_OPTIONS);
 
-    if (fullWrong.length < 4 || !correct) {
+    if (fullWrong.length < QUIZ_WRONG_OPTIONS || !correct) {
       setOptions([]);
       return;
     }
@@ -109,7 +110,7 @@ export default function QuizScreen() {
     }
 
     const pool = await CardModel.getQuizPool(currentDictionaryId);
-    if (pool.length < 5) {
+    if (pool.length < QUIZ_MIN_CARDS) {
       setQuizCards([]);
       setState('insufficient');
       return;
@@ -119,7 +120,7 @@ export default function QuizScreen() {
       pool.map((c) => (c.translation || '').trim()).filter((v) => v.length > 0)
     );
 
-    if (uniqueTranslations.size < 5) {
+    if (uniqueTranslations.size < QUIZ_MIN_UNIQUE_TRANSLATIONS) {
       setQuizCards([]);
       setState('insufficient');
       return;
@@ -155,7 +156,7 @@ export default function QuizScreen() {
 
   const onSelectOption = useCallback(async (option: string) => {
     setSelectedOption(option);
-    if (!currentCard || options.length !== 5) return;
+    if (!currentCard || options.length !== QUIZ_TOTAL_OPTIONS) return;
     if (answered) return;
 
     const isCorrect = normalizeAnswer(option) === normalizeAnswer(currentCard.translation);
@@ -177,18 +178,23 @@ export default function QuizScreen() {
     return `${Math.min(currentIndex + 1, quizCards.length)}/${quizCards.length}`;
   }, [currentIndex, quizCards.length]);
 
+  const OPTION_COLORS = {
+    neutral: { backgroundColor: '#0e1c1c', borderColor: '#1e4747' },
+    correct: { backgroundColor: '#166534', borderColor: '#22c55e' },
+    wrong:   { backgroundColor: '#991b1b', borderColor: '#ef4444' },
+  } as const;
+
   const optionColors = useMemo(() => {
-    const neutral = { backgroundColor: '#0e1c1c', borderColor: '#1e4747' };
     const map = new Map<string, { backgroundColor: string; borderColor: string }>();
     for (const option of options) {
       if (!answered || !currentCard) {
-        map.set(option, neutral);
+        map.set(option, OPTION_COLORS.neutral);
       } else if (selectedOption === option) {
         map.set(option, normalizeAnswer(option) === currentCardTranslation
-          ? { backgroundColor: '#166534', borderColor: '#22c55e' }
-          : { backgroundColor: '#991b1b', borderColor: '#ef4444' });
+          ? OPTION_COLORS.correct
+          : OPTION_COLORS.wrong);
       } else {
-        map.set(option, neutral);
+        map.set(option, OPTION_COLORS.neutral);
       }
     }
     return map;
@@ -238,7 +244,7 @@ export default function QuizScreen() {
               return (
                 <Pressable
                   key={option}
-                  disabled={options.length !== 5}
+                  disabled={options.length !== QUIZ_TOTAL_OPTIONS}
                   onPress={() => onSelectOption(option)}
                   className='rounded-xl border px-4 py-4'
                   style={colors}

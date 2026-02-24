@@ -82,10 +82,8 @@ export class CardModel {
 
   static async delete(id: number) {
     const db = getDB();
-    await db.withTransactionAsync(async () => {
-      await db.runAsync('DELETE FROM examples WHERE card_id = ?', [id]);
-      await db.runAsync('DELETE FROM cards WHERE id = ?', [id]);
-    });
+    // examples удаляются каскадно (ON DELETE CASCADE)
+    await db.runAsync('DELETE FROM cards WHERE id = ?', [id]);
   }
 
   static async create(word: string, translation: string, transcription: string | null, examples: string[] = [], rating: number = 0, dictionaryId: number) {
@@ -152,7 +150,7 @@ export class CardModel {
   static async getQuizPool(dictionaryId: number): Promise<TCard[]> {
     const db = getDB();
     const rows = await db.getAllAsync<CardRow>(
-      'SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM()',
+      'SELECT * FROM cards WHERE dictionary_id = ? ORDER BY RANDOM() LIMIT 50',
       [dictionaryId]
     );
 
@@ -163,6 +161,42 @@ export class CardModel {
       dictionaryId: row.dictionary_id,
       examples: [],
       show: false,
+    }));
+  }
+
+  static async getRepeatPool(dictionaryId: number): Promise<Array<{
+    id: number;
+    word: string;
+    translation: string;
+    transcription: string | null;
+    rating: number;
+    examples: string[];
+  }>> {
+    const db = getDB();
+    const rows = await db.getAllAsync<{
+      id: number;
+      word: string;
+      translation: string;
+      transcription: string | null;
+      rating: number;
+      examples_raw: string | null;
+    }>(
+      `SELECT c.id, c.word, c.translation, c.transcription, c.rating,
+              GROUP_CONCAT(e.sentence, '||') AS examples_raw
+       FROM cards c
+       LEFT JOIN examples e ON e.card_id = c.id
+       WHERE c.dictionary_id = ? AND c.rating < 2
+       GROUP BY c.id
+       ORDER BY c.rating ASC, RANDOM()`,
+      [dictionaryId]
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      word: r.word,
+      translation: r.translation,
+      transcription: r.transcription,
+      rating: r.rating,
+      examples: r.examples_raw ? r.examples_raw.split('||').filter(Boolean) : [],
     }));
   }
 
