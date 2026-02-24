@@ -64,38 +64,40 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
   ).current;
 
   return (
+    <View className='flex-1'>
       <TouchableWithoutFeedback onPress={() => (flipped ? flipToFront() : flipToBack())}>
-        <View className='w-full h-full' {...panResponder.panHandlers}>
-        <Animated.View
-          className="flex flex-col gap-5"
-          style={[
-            styles.card,
-            {
-              transform: [{ rotateY: frontInterpolate }],
-              zIndex: flipped ? 0 : 1,
-            },
-          ]}
-        >
-          {front}
-        </Animated.View>
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              transform: [{ rotateY: backInterpolate }],
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: flipped ? 1 : 0,
-            },
-          ]}
-        >
-          {back}
-        </Animated.View>
+        <View className='w-full h-full flex-1' {...panResponder.panHandlers}>
+          <Animated.View
+            className="flex flex-col gap-5 h-full"
+            style={[
+              styles.card,
+              {
+                transform: [{ rotateY: frontInterpolate }],
+                zIndex: flipped ? 0 : 1,
+              },
+            ]}
+          >
+            {front}
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.card,
+              {
+                transform: [{ rotateY: backInterpolate }],
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: flipped ? 1 : 0,
+              },
+            ]}
+          >
+            {back}
+          </Animated.View>
         </View>
       </TouchableWithoutFeedback>
+    </View>
   );
 };
 

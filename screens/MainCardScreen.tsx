@@ -10,15 +10,24 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAppContext } from '@/context/AppContext'
 import EmptyState from '@/components/ui/EmptyState'
 import * as Haptics from 'expo-haptics'
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { FLOATING_PANEL_GAP } from '@/constants/layout';
 
 const MainCardScreen = () => {
   const router = useRouter();
   const { currentDictionaryId } = useAppContext();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [search, setSearch] = useState('')
   const [card, setCard] = useState<TCard | null>(null)
   const [loading, setLoading] = useState(true)
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [confirmVisible, setConfirmVisible] = useState(false)
+  const [navPanelHeight, setNavPanelHeight] = useState(0)
+
+  const navBottomOffset = tabBarHeight + FLOATING_PANEL_GAP;
+  const cardContentBottomPadding = navPanelHeight + navBottomOffset + insets.bottom + 12;
 
   useEffect(() => {
     const loadById = async () => {
@@ -120,7 +129,10 @@ const MainCardScreen = () => {
         onChangeText={searchCardHandler}
       />
 
-      <View className='flex-1'>
+      <View
+        className='flex-1'
+        style={card ? { paddingBottom: cardContentBottomPadding } : undefined}
+      >
         {loading ? (
           <View className='flex-1 items-center justify-center'>
             <ActivityIndicator size='large' color='#d9ebeb' />
@@ -153,7 +165,11 @@ const MainCardScreen = () => {
       />
 
       {card && (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 8 }} className='px-4'>
+        <View
+          style={{ position: 'absolute', left: 0, right: 0, bottom: navBottomOffset }}
+          className='px-4'
+          onLayout={(e) => setNavPanelHeight(e.nativeEvent.layout.height)}
+        >
           <View className='flex-row items-center justify-between gap-4'>
             <Pressable 
               onPress={handleSwipeLeft} 
