@@ -1,23 +1,23 @@
 import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Animated } from 'react-native'
+import { useState, useCallback, useEffect } from 'react'
+import { View, Text, Pressable, ScrollView, ActivityIndicator, FlatList, TextInput } from 'react-native'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/Card'
-import SearchInput from '@/components/ui/SearchInput'
 import useDebounce from '@/utils/useDebounce'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAppContext } from '@/context/AppContext'
 import { LanguageModel } from '@/models/LanguageModel'
 import { DictionaryModel } from '@/models/DictionaryModel'
 import EmptyState from '@/components/ui/EmptyState'
+import { IconSymbol } from '@/components/ui/IconSymbol'
+import theme from '@/constants/theme'
 
-const HEADER_HEIGHT = 190
+const HEADER_HEIGHT = 64
 
 const CardListScreen = () => {
   const router = useRouter()
-  const scrollY = useRef(new Animated.Value(0)).current
   const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext()
   const [cards, setCards] = useState<TCard[]>([])
   const [visibleCards, setVisibleCards] = useState<TCard[]>([])
@@ -29,6 +29,7 @@ const CardListScreen = () => {
   const [languages, setLanguages] = useState<{ id: number; name: string }[]>([])
   const [dicts, setDicts] = useState<{ id: number; name: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const applyFilters = useCallback((list: TCard[]) => {
     let result = list
@@ -123,77 +124,62 @@ const CardListScreen = () => {
     setSortMode(prev => prev === 'none' ? 'asc' : prev === 'asc' ? 'desc' : 'none')
   }
 
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT],
-    outputRange: [0, -HEADER_HEIGHT],
-    extrapolate: 'clamp',
-  })
+  const openSearch = () => {
+    setSearchOpen(true)
+  }
+
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setSearch('')
+    loadCards()
+  }
 
   return (
     <View className='flex-1 bg-primary-900'>
-      <Animated.View
+      <View
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
           top: 0,
           zIndex: 20,
-          transform: [{ translateY: headerTranslateY }],
         }}
       >
-        <View className='bg-primary-900'>
-          <View className='px-4 pt-6'>
-            <View className='flex-row items-center justify-between mb-2'>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, maxWidth: '62%' }}>
-                <View className='flex-row gap-2'>
-                  {dicts.map(d => (
-                    <Pressable key={d.id} onPress={() => setCurrentDictionaryId(d.id)} className={`px-3 py-2 rounded-xl border ${currentDictionaryId===d.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                      <Text className='text-primary-100 text-xs'>{d.name}</Text>
-                    </Pressable>
-                  ))}
+        {!searchOpen && (
+          <View className='bg-primary-900'>
+            <View className='px-4 pt-3'>
+              <View className='flex-row items-center justify-between mb-2'>
+                <View className='flex-1 mr-3'>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
+                    <View className='flex-row gap-2'>
+                      {dicts.map(d => (
+                        <Pressable key={d.id} onPress={() => setCurrentDictionaryId(d.id)} className={`px-3 py-2 rounded-xl border ${currentDictionaryId===d.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                          <Text className='text-primary-100 text-xs'>{d.name}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
                 </View>
-              </ScrollView>
-              <View className='flex-row gap-2'>
-                <Pressable onPress={() => router.push('/quiz')} className='px-3 py-2 rounded-xl border border-primary-300'>
-                  <Text className='text-primary-100 text-xs'>QUIZ</Text>
-                </Pressable>
-                <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
-                  <Text className='text-primary-100 text-xs'>CSV</Text>
+                <Pressable
+                  onPress={openSearch}
+                  hitSlop={10}
+                  className='w-10 h-10 rounded-xl border border-primary-300 items-center justify-center'
+                  style={{ zIndex: 40, elevation: 40 }}
+                >
+                  <IconSymbol name='magnifyingglass' size={18} color='#d9ebeb' />
                 </Pressable>
               </View>
             </View>
           </View>
-          <SearchInput
-            value={search}
-            placeholder="Search word ..."
-            onChangeText={setSearch}
-          />
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mt-2 px-4' style={{ flexGrow: 0 }}>
-            <View className='flex-row gap-2 pb-2'>
-              <Pressable onPress={cycleSort} className='px-3 py-2 rounded-xl border border-primary-300'>
-                <Text className='text-primary-100'>Сортировка: {sortMode === 'none' ? 'выкл' : sortMode === 'asc' ? 'по возр.' : 'по убыв.'}</Text>
-              </Pressable>
-              <Pressable onPress={() => toggleRatingHidden(0)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(0) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                <Text className='text-primary-100'>Не знаю</Text>
-              </Pressable>
-              <Pressable onPress={() => toggleRatingHidden(1)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(1) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                <Text className='text-primary-100'>Плохо</Text>
-              </Pressable>
-              <Pressable onPress={() => toggleRatingHidden(2)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(2) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                <Text className='text-primary-100'>Хорошо</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </View>
-      </Animated.View>
+        )}
+      </View>
 
       {loading ? (
         <View className='flex-1 items-center justify-center' style={{ paddingTop: HEADER_HEIGHT }}>
           <ActivityIndicator size='large' color='#d9ebeb' />
         </View>
       ) : (
-      <Animated.FlatList
+      <FlatList
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingTop: HEADER_HEIGHT, paddingBottom: 16, flexGrow: 1 }}
         data={visibleCards}
@@ -210,11 +196,24 @@ const CardListScreen = () => {
         maxToRenderPerBatch={10}
         windowSize={10}
         initialNumToRender={15}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+        ListHeaderComponent={(
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className='px-4' style={{ flexGrow: 0 }}>
+            <View className='flex-row gap-2 pb-2 pt-2'>
+              <Pressable onPress={cycleSort} className='px-3 py-2 rounded-xl border border-primary-300'>
+                <Text className='text-primary-100'>Сортировка: {sortMode === 'none' ? 'выкл' : sortMode === 'asc' ? 'по возр.' : 'по убыв.'}</Text>
+              </Pressable>
+              <Pressable onPress={() => toggleRatingHidden(0)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(0) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100'>Не знаю</Text>
+              </Pressable>
+              <Pressable onPress={() => toggleRatingHidden(1)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(1) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100'>Плохо</Text>
+              </Pressable>
+              <Pressable onPress={() => toggleRatingHidden(2)} className={`px-3 py-2 rounded-xl border ${hiddenRatings.has(2) ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
+                <Text className='text-primary-100'>Хорошо</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
         )}
-        scrollEventThrottle={16}
         ListEmptyComponent={
           <EmptyState
             icon='tray'
@@ -234,6 +233,41 @@ const CardListScreen = () => {
         onCancel={() => { setConfirmVisible(false); setPendingDeleteId(null) }}
         onConfirm={confirmDelete}
       />
+
+      {searchOpen && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 60,
+            elevation: 60,
+            paddingTop: 6,
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+            backgroundColor: theme.colors.background,
+          }}
+        >
+          <View
+            className='h-16 flex-row items-center bg-primary-300 border border-primary-200'
+            style={{ width: '100%', borderRadius: 24, overflow: 'hidden', paddingLeft: 12, paddingRight: 14 }}
+          >
+            <IconSymbol name='magnifyingglass' size={18} color='#d9ebeb' />
+            <TextInput
+              autoFocus
+              value={search}
+              onChangeText={setSearch}
+              placeholder='Поиск карточек'
+              placeholderTextColor={theme.colors.textMuted}
+              style={{ width: 0, flexGrow: 1, flexShrink: 1, marginLeft: 24, color: '#d9ebeb', fontSize: 16 }}
+            />
+            <Pressable onPress={closeSearch} className='ml-3 px-1 py-1'>
+              <Text className='text-primary-100 text-2xl'>×</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

@@ -1,6 +1,5 @@
-import { Pressable, View, Text, ActivityIndicator } from 'react-native'
+import { Pressable, View, Text, ActivityIndicator, TextInput } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import SearchInput from '@/components/ui/SearchInput';
 import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
 import FlipCardNavigator from '@/components/card/FlipCardNavigator';
@@ -13,6 +12,7 @@ import * as Haptics from 'expo-haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { FLOATING_PANEL_GAP } from '@/constants/layout';
+import theme from '@/constants/theme';
 
 const MainCardScreen = () => {
   const router = useRouter();
@@ -25,9 +25,11 @@ const MainCardScreen = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [confirmVisible, setConfirmVisible] = useState(false)
   const [navPanelHeight, setNavPanelHeight] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const navBottomOffset = tabBarHeight + FLOATING_PANEL_GAP;
   const cardContentBottomPadding = navPanelHeight + navBottomOffset + insets.bottom + 12;
+  const cardContentTopPadding = searchOpen ? 72 : 0;
 
   useEffect(() => {
     const loadById = async () => {
@@ -115,23 +117,34 @@ const MainCardScreen = () => {
     setSearch('')
   }
 
+  const openSearch = () => {
+    setSearchOpen(true)
+  }
+
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setSearch(card?.word || '')
+  }
+
   return (
     <View className='bg-primary-900 flex-1 relative'>
-      <View className='px-4 pt-3 flex-row items-center justify-between'>
-        <Text className='text-primary-100 text-lg'>Карточка</Text>
-        <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
-          <Text className='text-primary-100 text-xs'>CSV</Text>
-        </Pressable>
-      </View>
-      <SearchInput 
-        value={search}
-        placeholder="Search word ..."
-        onChangeText={searchCardHandler}
-      />
+      {!searchOpen && (
+        <View className='px-4 pt-3 flex-row items-center justify-between'>
+          <Text className='text-primary-100 text-lg'>Карточка</Text>
+          <Pressable
+            onPress={openSearch}
+            hitSlop={10}
+            className='w-10 h-10 rounded-xl border border-primary-300 items-center justify-center'
+            style={{ zIndex: 40, elevation: 40 }}
+          >
+            <IconSymbol name='magnifyingglass' size={18} color='#d9ebeb' />
+          </Pressable>
+        </View>
+      )}
 
       <View
         className='flex-1'
-        style={card ? { paddingBottom: cardContentBottomPadding } : undefined}
+        style={card ? { paddingTop: cardContentTopPadding, paddingBottom: cardContentBottomPadding } : undefined}
       >
         {loading ? (
           <View className='flex-1 items-center justify-center'>
@@ -186,6 +199,41 @@ const MainCardScreen = () => {
             >
               <Text className='text-white text-2xl mr-3'>Далее</Text>
               <IconSymbol name='chevron.right' size={30} color={'#ffffff'} />
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {searchOpen && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 60,
+            elevation: 60,
+            paddingTop: 12,
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+            backgroundColor: theme.colors.background,
+          }}
+        >
+          <View
+            className='h-16 flex-row items-center bg-primary-300 border border-primary-200'
+            style={{ width: '100%', borderRadius: 24, overflow: 'hidden', paddingLeft: 12, paddingRight: 14 }}
+          >
+            <IconSymbol name='magnifyingglass' size={18} color='#d9ebeb' />
+            <TextInput
+              autoFocus
+              value={search}
+              onChangeText={searchCardHandler}
+              placeholder='Поиск карточек'
+              placeholderTextColor={theme.colors.textMuted}
+              style={{ width: 0, flexGrow: 1, flexShrink: 1, marginLeft: 24, color: '#d9ebeb', fontSize: 16 }}
+            />
+            <Pressable onPress={closeSearch} className='ml-3 px-1 py-1'>
+              <Text className='text-primary-100 text-2xl'>×</Text>
             </Pressable>
           </View>
         </View>
