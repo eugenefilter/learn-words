@@ -10,6 +10,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import RatingProgress from '@/components/ui/RatingProgress';
 import * as Haptics from 'expo-haptics';
 import { DictionarySelector } from '@/components/dictionary';
+import { FLOATING_PANEL_GAP } from '@/constants/layout';
 
 type RepeatCard = {
   id: number;
@@ -82,6 +83,7 @@ export default function RepeatScreen() {
   const card = cards[index] ?? null;
   const cardMinHeight = Math.max(180, screenHeight * 0.28);
   const examplesMaxHeight = Math.max(120, screenHeight * 0.2);
+  const bottomPanelOffset = (tabBarHeight || 0) + FLOATING_PANEL_GAP;
 
   return (
     <View
@@ -167,7 +169,7 @@ export default function RepeatScreen() {
       )}
 
       {!loading && card && (
-        <View style={{ position: 'absolute', left: 20, right: 20, bottom: 8, zIndex: 20, elevation: 20 }}>
+        <View style={{ position: 'absolute', left: 20, right: 20, bottom: bottomPanelOffset, zIndex: 20, elevation: 20 }}>
           {revealed ? (
             <View className='flex-row gap-3'>
               <Button title='Не знаю' onPress={() => handleAnswer(-1)} variant='danger' className='flex-1' />
