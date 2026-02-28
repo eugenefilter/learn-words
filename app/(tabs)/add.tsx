@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { FlatList, Text, View, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { CardModel } from '@/models/CardModel';
 import Input from '@/components/ui/Input';
@@ -8,14 +8,12 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import Toast from '@/components/ui/Toast';
 import { useAppContext } from '@/context/AppContext';
-import DictionaryPicker from '@/components/library/DictionaryPicker';
-import { DictionaryModel } from '@/models/DictionaryModel';
+import { DictionarySelector } from '@/components/dictionary';
 import { CONTENT_BOTTOM_PADDING } from '@/constants/layout';
 
 
 export default function AddCard() {
-  const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
-  const [dictionaryName, setDictionaryName] = useState<string>('');
+  const { currentDictionaryId } = useAppContext();
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
   const [transcription, setTranscription] = useState('');
@@ -28,7 +26,6 @@ export default function AddCard() {
   const [saving, setSaving] = useState(false);
   const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
-  const [pickerVisible, setPickerVisible] = useState(false);
 
   // Ensure a fresh form each time the screen is focused
   useFocusEffect(
@@ -40,21 +37,6 @@ export default function AddCard() {
       setExample('');
     }, [])
   );
-
-  // load dictionary name for display
-  useEffect(() => {
-    let active = true;
-    const loadName = async () => {
-      if (currentDictionaryId) {
-        const dict = await DictionaryModel.findById(currentDictionaryId);
-        if (active) setDictionaryName(dict?.name || '');
-      } else {
-        if (active) setDictionaryName('');
-      }
-    };
-    loadName();
-    return () => { active = false };
-  }, [currentDictionaryId]);
 
   const addExample = () => {
     if (example.trim()) {
@@ -114,10 +96,7 @@ export default function AddCard() {
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View className='flex-1 px-5 pt-6' style={{ paddingBottom: CONTENT_BOTTOM_PADDING }}>
         <View>
-          <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
-            <Text className='text-primary-100'>Словарь: {dictionaryName || (currentDictionaryId ? `#${currentDictionaryId}` : 'не выбран')}</Text>
-            <Text className='text-primary-100 opacity-80 text-xs mt-1'>Нажмите, чтобы выбрать</Text>
-          </Pressable>
+          <DictionarySelector buttonClassName='mb-3' />
           <Input value={word} onChangeText={setWord} placeholder='Слово (например: stick)' className='my-2' />
 
           <Input value={translation} onChangeText={setTranslation} placeholder='Перевод (например: придерживаться)' className='my-2' />
@@ -187,13 +166,6 @@ export default function AddCard() {
         onHide={() => setToastVisible(false)}
       />
 
-      <DictionaryPicker
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
-        onSelect={(id) => {
-          setCurrentDictionaryId(id)
-        }}
-      />
     </KeyboardAvoidingView>
   );
 }

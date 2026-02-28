@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, Pres
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useAppContext } from '@/context/AppContext';
-import DictionaryPicker from '@/components/library/DictionaryPicker';
+import { DictionarySelector } from '@/components/dictionary';
 import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -31,10 +31,7 @@ const CsvScreen: React.FC = () => {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
-  const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
-
-  // Picker state
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const { currentDictionaryId } = useAppContext();
 
   // Export state
   const [exportCsv, setExportCsv] = useState('');
@@ -334,10 +331,7 @@ const CsvScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView className='flex-1 bg-primary-900' behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomInset, flexGrow: 1 }} className='flex-1 px-4 pt-4'>
-        <Pressable onPress={() => setPickerVisible(true)} className='mb-3 px-3 py-3 rounded-xl border border-primary-200 bg-primary-300'>
-          <Text className='text-primary-100'>Словарь для импорта/экспорта: {currentDictionaryId ? `#${currentDictionaryId}` : 'не выбран'}</Text>
-          <Text className='text-primary-100 opacity-80 text-xs mt-1'>Нажмите, чтобы выбрать существующий или создать новый</Text>
-        </Pressable>
+        <DictionarySelector buttonClassName='mb-3' />
 
         <View className='rounded-2xl border border-primary-200 bg-primary-800 p-4 mb-3'>
           <Text className='text-primary-100 text-lg mb-2'>Экспорт</Text>
@@ -403,22 +397,13 @@ const CsvScreen: React.FC = () => {
               <Text className='text-primary-100 text-xs mb-2'>Превью первых строк:</Text>
               {previewRows.map((row, index) => (
                 <Text key={`${row.word}-${row.translation}-${index}`} className='text-primary-100 opacity-80 text-xs mb-1'>
-                  {index + 1}. {row.word} -> {row.translation} {row.transcription ? `(${row.transcription})` : ''}
+                  {index + 1}. {row.word}{' -> '}{row.translation} {row.transcription ? `(${row.transcription})` : ''}
                 </Text>
               ))}
             </View>
           )}
         </View>
       </ScrollView>
-
-      <DictionaryPicker
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
-        onSelect={(id) => {
-          setCurrentDictionaryId(id);
-          setPickerVisible(false);
-        }}
-      />
 
       <ConfirmDialog
         visible={confirmVisible}

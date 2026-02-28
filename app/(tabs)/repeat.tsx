@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import RatingProgress from '@/components/ui/RatingProgress';
 import * as Haptics from 'expo-haptics';
+import { DictionarySelector } from '@/components/dictionary';
 
 type RepeatCard = {
   id: number;
@@ -87,7 +88,10 @@ export default function RepeatScreen() {
       className='flex-1 bg-primary-900 px-5 pt-6'
       style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 8 }}
     >
-      <Text className='text-primary-100 text-2xl mb-1'>Повтор</Text>
+      <View className='flex-row items-center justify-between mb-1 gap-3'>
+        <Text className='text-primary-100 text-2xl'>Повтор</Text>
+        <DictionarySelector textClassName='text-primary-100 text-sm' />
+      </View>
       <Text className='text-primary-100 opacity-60 text-sm mb-4'>
         Карточки с рейтингом «Не знаю» и «Плохо»
       </Text>

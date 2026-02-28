@@ -2,26 +2,23 @@ import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator, FlatList, TextInput } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CardModel } from '@/models/CardModel'
 import { TCard } from '@/types/TCard'
 import Card from '@/components/card/Card'
 import useDebounce from '@/utils/useDebounce'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAppContext } from '@/context/AppContext'
-import { LanguageModel } from '@/models/LanguageModel'
-import { DictionaryModel } from '@/models/DictionaryModel'
 import EmptyState from '@/components/ui/EmptyState'
 import { IconSymbol } from '@/components/ui/IconSymbol'
 import theme from '@/constants/theme'
+import { DictionarySelector } from '@/components/dictionary'
 
 const HEADER_CONTENT_HEIGHT = 64
 const PAGE_SIZE = 20
 
 const CardListScreen = () => {
   const router = useRouter()
-  const insets = useSafeAreaInsets()
-  const { currentLanguageId, setCurrentLanguageId, currentDictionaryId, setCurrentDictionaryId } = useAppContext()
+  const { currentDictionaryId } = useAppContext()
   const [cards, setCards] = useState<TCard[]>([])
   const [visibleCards, setVisibleCards] = useState<TCard[]>([])
   const [search, setSearch] = useState('')
@@ -29,8 +26,6 @@ const CardListScreen = () => {
   const [hiddenRatings, setHiddenRatings] = useState<Set<number>>(new Set())
   const [confirmVisible, setConfirmVisible] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
-  const [languages, setLanguages] = useState<{ id: number; name: string }[]>([])
-  const [dicts, setDicts] = useState<{ id: number; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -54,18 +49,6 @@ const CardListScreen = () => {
     }
     setVisibleCards(result)
   }, [hiddenRatings, sortMode])
-
-  const loadContext = useCallback(async () => {
-    const langs = await LanguageModel.all();
-    setLanguages(langs)
-    const lid = currentLanguageId ?? langs[0]?.id
-    if (lid) {
-      if (!currentLanguageId) setCurrentLanguageId(lid)
-      const d = await DictionaryModel.allByLanguage(lid)
-      setDicts(d)
-      if (!currentDictionaryId && d[0]?.id) setCurrentDictionaryId(d[0].id)
-    }
-  }, [currentLanguageId, currentDictionaryId, setCurrentLanguageId, setCurrentDictionaryId])
 
   const loadFirstPage = useCallback(async (query: string) => {
     const requestId = ++requestIdRef.current;
@@ -126,13 +109,10 @@ const CardListScreen = () => {
     await loadFirstPage(debouncedSearch)
   }, [pendingDeleteId, loadFirstPage, debouncedSearch])
 
-  // useFocusEffect только обновляет контекст и триггерит счётчик фокуса —
-  // не вызывает loadFirstPage напрямую, чтобы избежать двойного запроса
   useFocusEffect(
     useCallback(() => {
-      loadContext();
       setFocusCount((c) => c + 1);
-    }, [loadContext])
+    }, [])
   )
 
   // Единственное место вызова loadFirstPage — реагирует на смену поиска и фокуса экрана
@@ -181,19 +161,11 @@ const CardListScreen = () => {
         }}
       >
         {!searchOpen && (
-          <View className='bg-primary-900' style={{ paddingTop: insets.top }}>
+          <View className='bg-primary-900'>
             <View className='px-4 pt-3'>
               <View className='flex-row items-center justify-between mb-2'>
-                <View className='flex-1 mr-3'>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
-                    <View className='flex-row gap-2'>
-                      {dicts.map(d => (
-                        <Pressable key={d.id} onPress={() => setCurrentDictionaryId(d.id)} className={`px-3 py-2 rounded-xl border ${currentDictionaryId===d.id ? 'bg-primary-700 border-accent-600' : 'border-primary-300'}`}>
-                          <Text className='text-primary-100 text-xs'>{d.name}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </ScrollView>
+                <View className='mr-3'>
+                  <DictionarySelector />
                 </View>
                 <Pressable
                   onPress={openSearch}
@@ -210,13 +182,13 @@ const CardListScreen = () => {
       </View>
 
       {loading ? (
-        <View className='flex-1 items-center justify-center' style={{ paddingTop: HEADER_CONTENT_HEIGHT + insets.top }}>
+        <View className='flex-1 items-center justify-center' style={{ paddingTop: HEADER_CONTENT_HEIGHT }}>
           <ActivityIndicator size='large' color='#d9ebeb' />
         </View>
       ) : (
       <FlatList
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: HEADER_CONTENT_HEIGHT + insets.top, paddingBottom: 16, flexGrow: 1 }}
+        contentContainerStyle={{ paddingTop: HEADER_CONTENT_HEIGHT, paddingBottom: 16, flexGrow: 1 }}
         data={visibleCards}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (

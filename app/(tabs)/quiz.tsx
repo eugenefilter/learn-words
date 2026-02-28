@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
@@ -10,8 +10,7 @@ import Button from '@/components/ui/Button';
 import { FLOATING_PANEL_GAP, QUIZ_CONTENT_BOTTOM_PADDING } from '@/constants/layout';
 import { QUIZ_WRONG_OPTIONS, QUIZ_TOTAL_OPTIONS, QUIZ_MIN_CARDS, QUIZ_MIN_UNIQUE_TRANSLATIONS } from '@/constants/quiz';
 import * as Haptics from 'expo-haptics';
-import { DictionaryModel } from '@/models/DictionaryModel';
-import DictionaryPicker from '@/components/library/DictionaryPicker';
+import { DictionarySelector } from '@/components/dictionary';
 
 type QuizState = 'loading' | 'ready' | 'insufficient' | 'completed';
 
@@ -29,7 +28,7 @@ const shuffle = <T,>(items: T[]): T[] => {
 export default function QuizScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
-  const { currentDictionaryId, setCurrentDictionaryId } = useAppContext();
+  const { currentDictionaryId } = useAppContext();
 
   const [quizCards, setQuizCards] = useState<TCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,33 +38,10 @@ export default function QuizScreen() {
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [state, setState] = useState<QuizState>('loading');
-  const [dictionaryName, setDictionaryName] = useState('Словарь');
-  const [dictionaryPickerVisible, setDictionaryPickerVisible] = useState(false);
 
   const currentCard = quizCards[currentIndex] ?? null;
   const currentCardTranslation = normalizeAnswer(currentCard?.translation);
   const panelBottomOffset = (tabBarHeight || 0) + FLOATING_PANEL_GAP;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadCurrentDictionaryName = async () => {
-      if (!currentDictionaryId) {
-        if (!cancelled) setDictionaryName('Словарь');
-        return;
-      }
-
-      const dict = await DictionaryModel.findById(currentDictionaryId);
-      if (!cancelled) {
-        setDictionaryName(dict?.name?.trim() || 'Словарь');
-      }
-    };
-
-    loadCurrentDictionaryName();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentDictionaryId]);
 
   const buildOptionsForCard = useCallback(async (card: TCard, pool: TCard[]) => {
     if (!currentDictionaryId) {
@@ -204,12 +180,7 @@ export default function QuizScreen() {
     <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + QUIZ_CONTENT_BOTTOM_PADDING }}>
       <View className='flex-row items-center justify-between mb-4'>
         <Text className='text-primary-100 text-2xl'>Квиз</Text>
-        <Pressable
-          onPress={() => setDictionaryPickerVisible(true)}
-          className='max-w-[72%] px-3 py-2 rounded-xl border border-primary-300 bg-primary-800'
-        >
-          <Text className='text-primary-100 text-sm' numberOfLines={1}>{dictionaryName}</Text>
-        </Pressable>
+        <DictionarySelector textClassName='text-primary-100 text-sm' />
       </View>
 
       {state === 'loading' && (
@@ -289,13 +260,6 @@ export default function QuizScreen() {
         </View>
       )}
 
-      <DictionaryPicker
-        visible={dictionaryPickerVisible}
-        onClose={() => setDictionaryPickerVisible(false)}
-        onSelect={(dictionaryId) => {
-          setCurrentDictionaryId(dictionaryId);
-        }}
-      />
     </View>
   );
 }

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { FLOATING_PANEL_GAP } from '@/constants/layout';
 import theme from '@/constants/theme';
+import { DictionarySelector } from '@/components/dictionary';
 
 const MainCardScreen = () => {
   const router = useRouter();
@@ -130,7 +131,7 @@ const MainCardScreen = () => {
     <View className='bg-primary-900 flex-1 relative'>
       {!searchOpen && (
         <View className='px-4 pt-3 flex-row items-center justify-between'>
-          <Text className='text-primary-100 text-lg'>Карточка</Text>
+          <DictionarySelector buttonClassName='mr-3' />
           <Pressable
             onPress={openSearch}
             hitSlop={10}
