@@ -195,8 +195,7 @@ const LibraryScreen = () => {
 
   return (
     <View className='flex-1 bg-primary-900 px-4 pt-6'>
-      <View className='flex-row items-center justify-between mb-3'>
-        <Text className='text-primary-100 text-2xl'>Библиотека</Text>
+      <View className='flex-row items-center justify-start mb-3'>
         <Pressable onPress={() => router.push('/csv')} className='px-3 py-2 rounded-xl border border-primary-300'>
           <Text className='text-primary-100 text-xs'>Импорт/Экспорт CSV</Text>
         </Pressable>

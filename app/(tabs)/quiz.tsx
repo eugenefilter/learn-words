@@ -178,8 +178,7 @@ export default function QuizScreen() {
 
   return (
     <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + QUIZ_CONTENT_BOTTOM_PADDING }}>
-      <View className='flex-row items-center justify-between mb-4'>
-        <Text className='text-primary-100 text-2xl'>Квиз</Text>
+      <View className='flex-row items-center justify-start mb-4'>
         <DictionarySelector textClassName='text-primary-100 text-sm' />
       </View>
 
