@@ -59,20 +59,19 @@ const Card: FC<ICardProps> = ({ card, onEdit, onDelete, onPress }) => {
       >
         <Pressable
           onPress={onPress}
-          className='w-full px-5 py-2.5 flex flex-col bg-primary-800'
+          className='w-full px-5 py-2.5 flex flex-col bg-primary-800 relative'
         >
-          <View className='flex-row items-start justify-between'>
-            <View className='flex-1 pr-3'>
+          <View className='absolute top-2.5 right-3'>
+            <RatingProgress rating={rating} />
+          </View>
+          <View className='flex-row items-start'>
+            <View className='flex-1 pr-20'>
               <Text className="text-left text-primary-100 uppercase" style={{ fontSize: 14, lineHeight: 18 }}>
                 {card.word}
               </Text>
               <Text className="text-primary-100 opacity-90 mt-1" style={{ fontSize: 14, lineHeight: 18 }}>
                 {[card.translation, card.transcription].filter(Boolean).join(' / ')}
               </Text>
-            </View>
-
-            <View className='ml-2 mt-0.5'>
-              <RatingProgress rating={rating} />
             </View>
           </View>
         </Pressable>

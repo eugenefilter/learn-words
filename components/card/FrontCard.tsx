@@ -13,11 +13,11 @@ interface ICardProps {
 const FrontCard: FC<ICardProps> = ({card, onEdit, onDelete}) => {
   return (
     <View className='bg-primary-800 flex-1 border border-primary-200 mt-6 mx-5 rounded-xl relative overflow-hidden'>
-      <View className='absolute top-3 left-3 z-10'>
+      <View className='absolute top-3 right-3 z-10'>
         <RatingProgress rating={card.rating ?? 0} size='md' />
       </View>
       {(onEdit || onDelete) && (
-        <View className='absolute top-3 right-3 z-10 flex-row gap-2'>
+        <View className='absolute top-16 right-3 z-10 flex-row gap-2'>
           {onEdit && (
             <Pressable onPress={onEdit} className='w-10 h-10 items-center justify-center rounded-full border border-primary-300'>
               <Pencil color={'#d9ebeb'} size={20} />
