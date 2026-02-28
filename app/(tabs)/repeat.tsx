@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { ScrollView, Text, View, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '@/context/AppContext';
 import { CardModel } from '@/models/CardModel';
@@ -83,12 +83,14 @@ export default function RepeatScreen() {
   const card = cards[index] ?? null;
   const cardMinHeight = Math.max(180, screenHeight * 0.28);
   const examplesMaxHeight = Math.max(120, screenHeight * 0.2);
-  const bottomPanelOffset = (tabBarHeight || 0) + FLOATING_PANEL_GAP;
+  const bottomPanelOffset = Platform.OS === 'ios'
+    ? (tabBarHeight || 0) + FLOATING_PANEL_GAP
+    : FLOATING_PANEL_GAP;
 
   return (
     <View
       className='flex-1 bg-primary-900 px-5 pt-6'
-      style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + 8 }}
+      style={{ paddingBottom: (Platform.OS === 'ios' ? (tabBarHeight || 0) + insets.bottom : 0) + 8 }}
     >
       <View className='flex-row items-center justify-start mb-1 gap-3'>
         <DictionarySelector textClassName='text-primary-100 text-sm' />

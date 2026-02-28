@@ -1,4 +1,4 @@
-import { Pressable, View, Text, ActivityIndicator, TextInput } from 'react-native'
+import { Pressable, View, Text, ActivityIndicator, TextInput, Platform } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { CardModel } from '@/models/CardModel';
 import { TCard } from '@/types/TCard';
@@ -30,8 +30,10 @@ const MainCardScreen = () => {
   const [navPanelHeight, setNavPanelHeight] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
 
-  const navBottomOffset = tabBarHeight + FLOATING_PANEL_GAP;
-  const cardContentBottomPadding = navPanelHeight + navBottomOffset + insets.bottom + 12;
+  const navBottomOffset = Platform.OS === 'ios'
+    ? tabBarHeight + FLOATING_PANEL_GAP
+    : FLOATING_PANEL_GAP;
+  const cardContentBottomPadding = navPanelHeight + navBottomOffset + (Platform.OS === 'ios' ? insets.bottom : 0) + 12;
   const cardContentTopPadding = searchOpen ? 72 : 0;
 
   useEffect(() => {

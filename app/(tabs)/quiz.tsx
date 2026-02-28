@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { CardModel } from '@/models/CardModel';
@@ -41,7 +41,9 @@ export default function QuizScreen() {
 
   const currentCard = quizCards[currentIndex] ?? null;
   const currentCardTranslation = normalizeAnswer(currentCard?.translation);
-  const panelBottomOffset = (tabBarHeight || 0) + FLOATING_PANEL_GAP;
+  const panelBottomOffset = Platform.OS === 'ios'
+    ? (tabBarHeight || 0) + FLOATING_PANEL_GAP
+    : FLOATING_PANEL_GAP;
 
   const buildOptionsForCard = useCallback(async (card: TCard, pool: TCard[]) => {
     if (!currentDictionaryId) {
@@ -177,7 +179,12 @@ export default function QuizScreen() {
   }, [options, answered, selectedOption, currentCard, currentCardTranslation]);
 
   return (
-    <View className='flex-1 bg-primary-900 px-5 pt-6' style={{ paddingBottom: (tabBarHeight || 0) + insets.bottom + QUIZ_CONTENT_BOTTOM_PADDING }}>
+    <View
+      className='flex-1 bg-primary-900 px-5 pt-6'
+      style={{
+        paddingBottom: (Platform.OS === 'ios' ? (tabBarHeight || 0) + insets.bottom : 0) + QUIZ_CONTENT_BOTTOM_PADDING,
+      }}
+    >
       <View className='flex-row items-center justify-start mb-4'>
         <DictionarySelector textClassName='text-primary-100 text-sm' />
       </View>
