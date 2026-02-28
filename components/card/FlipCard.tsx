@@ -1,22 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, PanResponder, StyleSheet, View, TouchableWithoutFeedback } from 'react-native';
+import { Animated, StyleSheet, View, TouchableWithoutFeedback } from 'react-native';
 
 interface FlipCardProps {
   front: React.ReactNode;
   back: React.ReactNode;
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
 }
 
-export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardProps) => {
+export const FlipCard = ({ front, back }: FlipCardProps) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const [flipped, setFlipped] = useState(false);
-
-  // Keep latest handlers to avoid stale closures inside PanResponder
-  const onSwipeLeftRef = useRef(onSwipeLeft);
-  const onSwipeRightRef = useRef(onSwipeRight);
-  useEffect(() => { onSwipeLeftRef.current = onSwipeLeft; }, [onSwipeLeft]);
-  useEffect(() => { onSwipeRightRef.current = onSwipeRight; }, [onSwipeRight]);
+  useEffect(() => {
+    // reset to front side when card content changes
+    setFlipped(false);
+    animatedValue.setValue(0);
+  }, [front, back, animatedValue]);
 
   const flipToFront = () => {
     Animated.timing(animatedValue, {
@@ -44,29 +41,10 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
     outputRange: ['180deg', '360deg'],
   });
 
-  // Handle swipe and tap (flip) without conflicts
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
-      onPanResponderRelease: (_, g) => {
-        const dx = g.dx;
-        const dy = g.dy;
-
-        // Horizontal swipe when clear enough
-        if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          if (dx < 0) onSwipeLeftRef.current && onSwipeLeftRef.current();
-          else onSwipeRightRef.current && onSwipeRightRef.current();
-        }
-      },
-    })
-  ).current;
-
   return (
     <View className='flex-1'>
       <TouchableWithoutFeedback onPress={() => (flipped ? flipToFront() : flipToBack())}>
-        <View className='w-full h-full flex-1' {...panResponder.panHandlers}>
+        <View style={styles.fill}>
           <Animated.View
             className="flex flex-col gap-5 h-full"
             style={[
@@ -102,6 +80,9 @@ export const FlipCard = ({ front, back, onSwipeLeft, onSwipeRight }: FlipCardPro
 };
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   card: {
     backfaceVisibility: 'hidden',
   },

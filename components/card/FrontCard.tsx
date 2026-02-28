@@ -1,35 +1,18 @@
-import { FlatList, Text, View, Pressable } from 'react-native'
+import { FlatList, Text, View } from 'react-native'
 import React, { FC } from 'react'
 import { TCard } from '@/types/TCard'
-import { Pencil, Trash } from 'lucide-react-native'
 import RatingProgress from '@/components/ui/RatingProgress'
 
 interface ICardProps {
   card: TCard,
-  onEdit?: () => void,
-  onDelete?: () => void,
 }
 
-const FrontCard: FC<ICardProps> = ({card, onEdit, onDelete}) => {
+const FrontCard: FC<ICardProps> = ({card}) => {
   return (
     <View className='bg-primary-800 flex-1 border border-primary-200 mt-6 mx-5 rounded-xl relative overflow-hidden'>
       <View className='absolute top-3 right-3 z-10'>
         <RatingProgress rating={card.rating ?? 0} size='md' />
       </View>
-      {(onEdit || onDelete) && (
-        <View className='absolute top-16 right-3 z-10 flex-row gap-2'>
-          {onEdit && (
-            <Pressable onPress={onEdit} className='w-10 h-10 items-center justify-center rounded-full border border-primary-300'>
-              <Pencil color={'#d9ebeb'} size={20} />
-            </Pressable>
-          )}
-          {onDelete && (
-            <Pressable onPress={onDelete} className='w-10 h-10 items-center justify-center rounded-full border border-primary-300'>
-              <Trash color={'#ef4444'} size={20} />
-            </Pressable>
-          )}
-        </View>
-      )}
       <View className='flex flex-col justify-center items-center gap-6 mt-10 px-6 pb-5'>
         <Text className='text-primary-100 text-4xl'>
           {card.word}

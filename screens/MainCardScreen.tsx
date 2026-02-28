@@ -14,6 +14,8 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { FLOATING_PANEL_GAP } from '@/constants/layout';
 import theme from '@/constants/theme';
 import { DictionarySelector } from '@/components/dictionary';
+import { Swipeable } from 'react-native-gesture-handler';
+import { Pencil, Trash2 } from 'lucide-react-native';
 
 const MainCardScreen = () => {
   const router = useRouter();
@@ -70,7 +72,7 @@ const MainCardScreen = () => {
       } else {
         const last = await CardModel.lastCard(currentDictionaryId || undefined)
         if (last) setCard(last)
-      }    
+      }
     }
   }
 
@@ -127,6 +129,44 @@ const MainCardScreen = () => {
     setSearch(card?.word || '')
   }
 
+  const renderLeftActions = () => (
+    <View
+      style={{
+        width: 56,
+        marginTop: 24,
+        marginBottom: 0,
+        borderRadius: 12,
+        overflow: 'hidden',
+      }}
+    >
+      <Pressable
+        onPress={handleEdit}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a3f5f' }}
+      >
+        <Pencil size={24} color='#d9ebeb' />
+      </Pressable>
+    </View>
+  );
+
+  const renderRightActions = () => (
+    <View
+      style={{
+        width: 56,
+        marginTop: 24,
+        marginBottom: 0,
+        borderRadius: 12,
+        overflow: 'hidden',
+      }}
+    >
+      <Pressable
+        onPress={handleDelete}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ef4444' }}
+      >
+        <Trash2 size={24} color='#ffffff' />
+      </Pressable>
+    </View>
+  );
+
   return (
     <View className='bg-primary-900 flex-1 relative'>
       {!searchOpen && (
@@ -152,13 +192,23 @@ const MainCardScreen = () => {
             <ActivityIndicator size='large' color='#d9ebeb' />
           </View>
         ) : card ? (
-          <FlipCardNavigator
-            card={card}
-            onSwipeLeft={handleSwipeLeft}
-            onSwipeRight={handleSwipeRight}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+          <Swipeable
+            containerStyle={{ flex: 1 }}
+            childrenContainerStyle={{ flex: 1 }}
+            renderLeftActions={renderLeftActions}
+            renderRightActions={renderRightActions}
+            leftThreshold={24}
+            rightThreshold={24}
+            overshootLeft={false}
+            overshootRight={false}
+            friction={3.2}
+          >
+            <View style={{ flex: 1 }}>
+              <FlipCardNavigator
+                card={card}
+              />
+            </View>
+          </Swipeable>
         ) : (
           <EmptyState
             icon='rectangle.on.rectangle'
